@@ -1,0 +1,51 @@
+@import "tailwindcss";
+
+@theme {
+  /* Codez color palette — blue-tinted dark theme */
+  --color-base: #0F1117;
+  --color-sidebar: #12141C;
+  --color-surface: #1A1D27;
+  --color-surface-hover: #222638;
+  --color-elevated: #262A3A;
+  --color-input: #161922;
+
+  --color-text-primary: #E8ECF4;
+  --color-text-secondary: #9BA2B8;
+  --color-text-muted: #5C6380;
+  --color-text-inverse: #0F1117;
+
+  --color-accent: #6C5CE7;
+  --color-accent-hover: #7E6FF0;
+  --color-accent-muted: #6C5CE720;
+
+  --color-success: #34D399;
+  --color-success-muted: #34D39920;
+  --color-warning: #FBBF24;
+  --color-warning-muted: #FBBF2420;
+  --color-error: #F87171;
+  --color-error-muted: #F8717120;
+  --color-info: #60A5FA;
+
+  --color-border: #232738;
+  --color-border-subtle: #1C2030;
+  --color-border-strong: #3B4160;
+}
+
+:root {
+  color-scheme: dark;
+}
+
+body {
+  margin: 0;
+  font-family:
+    -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", sans-serif;
+  -webkit-font-smoothing: antialiased;
+  color: var(--color-text-primary);
+  background: var(--color-base);
+  overflow: hidden;
+}
+
+/* Smooth transitions for panel visibility */
+.panel-transition {
+  transition: width 200ms ease, opacity 150ms ease;
+}

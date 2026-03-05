@@ -1,0 +1,86 @@
+import { contextBridge, ipcRenderer } from "electron";
+
+// IPC channel names inlined — preload runs in a sandboxed context
+// and can't require external modules. Keep in sync with src/shared/constants.ts.
+const CH = {
+  SESSIONS_CREATE: "sessions:create",
+  SESSIONS_RESUME: "sessions:resume",
+  SESSIONS_SEND_MESSAGE: "sessions:sendMessage",
+  SESSIONS_STOP: "sessions:stop",
+  SESSIONS_DELETE: "sessions:delete",
+  SESSIONS_LIST: "sessions:list",
+  SESSIONS_GET_MESSAGES: "sessions:getMessages",
+  REPOS_ADD: "repos:add",
+  REPOS_REMOVE: "repos:remove",
+  REPOS_LIST: "repos:list",
+  REPOS_SELECT_DIALOG: "repos:selectDialog",
+  WORKTREES_LIST: "worktrees:list",
+  WORKTREES_CLEANUP: "worktrees:cleanup",
+  VOICE_START_RECORDING: "voice:startRecording",
+  VOICE_STOP_AND_TRANSCRIBE: "voice:stopAndTranscribe",
+  DIFFS_GET_SESSION: "diffs:getSession",
+  DIFFS_GET_FILE: "diffs:getFile",
+  SETTINGS_GET_SHORTCUTS: "settings:getShortcuts",
+  SETTINGS_SAVE_SHORTCUTS: "settings:saveShortcuts",
+  SETTINGS_GET: "settings:get",
+  SETTINGS_SAVE: "settings:save",
+  APP_GET_INFO: "app:getInfo",
+  EVENT_AGENT: "event:agent",
+  EVENT_SESSION_STATUS: "event:sessionStatus",
+} as const;
+
+const api = {
+  // Sessions
+  createSession: (repoPath: string, agentType: string, name?: string) =>
+    ipcRenderer.invoke(CH.SESSIONS_CREATE, repoPath, agentType, name),
+  resumeSession: (sessionId: string) => ipcRenderer.invoke(CH.SESSIONS_RESUME, sessionId),
+  sendMessage: (sessionId: string, message: string) =>
+    ipcRenderer.invoke(CH.SESSIONS_SEND_MESSAGE, sessionId, message),
+  stopSession: (sessionId: string) => ipcRenderer.invoke(CH.SESSIONS_STOP, sessionId),
+  deleteSession: (sessionId: string) => ipcRenderer.invoke(CH.SESSIONS_DELETE, sessionId),
+  listSessions: (repoPath?: string) => ipcRenderer.invoke(CH.SESSIONS_LIST, repoPath),
+  getSessionMessages: (sessionId: string) => ipcRenderer.invoke(CH.SESSIONS_GET_MESSAGES, sessionId),
+
+  // Repos
+  addRepo: (repoPath: string) => ipcRenderer.invoke(CH.REPOS_ADD, repoPath),
+  removeRepo: (repoPath: string) => ipcRenderer.invoke(CH.REPOS_REMOVE, repoPath),
+  listRepos: () => ipcRenderer.invoke(CH.REPOS_LIST),
+  selectRepoDialog: () => ipcRenderer.invoke(CH.REPOS_SELECT_DIALOG),
+
+  // Worktrees
+  listWorktrees: (repoPath: string) => ipcRenderer.invoke(CH.WORKTREES_LIST, repoPath),
+  cleanupWorktree: (sessionId: string) => ipcRenderer.invoke(CH.WORKTREES_CLEANUP, sessionId),
+
+  // Voice
+  startRecording: () => ipcRenderer.invoke(CH.VOICE_START_RECORDING),
+  stopRecordingAndTranscribe: () => ipcRenderer.invoke(CH.VOICE_STOP_AND_TRANSCRIBE),
+
+  // Diffs
+  getSessionDiffs: (sessionId: string) => ipcRenderer.invoke(CH.DIFFS_GET_SESSION, sessionId),
+  getFileDiff: (sessionId: string, filePath: string) =>
+    ipcRenderer.invoke(CH.DIFFS_GET_FILE, sessionId, filePath),
+
+  // Settings
+  getShortcutOverrides: () => ipcRenderer.invoke(CH.SETTINGS_GET_SHORTCUTS),
+  saveShortcutOverrides: (overrides: Record<string, string>) =>
+    ipcRenderer.invoke(CH.SETTINGS_SAVE_SHORTCUTS, overrides),
+  getSettings: () => ipcRenderer.invoke(CH.SETTINGS_GET),
+  saveSettings: (settings: Record<string, unknown>) => ipcRenderer.invoke(CH.SETTINGS_SAVE, settings),
+
+  // App
+  getAppInfo: () => ipcRenderer.invoke(CH.APP_GET_INFO),
+
+  // Events (main → renderer)
+  onAgentEvent: (callback: (event: unknown) => void) => {
+    const handler = (_event: unknown, data: unknown) => callback(data);
+    ipcRenderer.on(CH.EVENT_AGENT, handler);
+    return () => ipcRenderer.removeListener(CH.EVENT_AGENT, handler);
+  },
+  onSessionStatusChanged: (callback: (sessionId: string, status: string) => void) => {
+    const handler = (_event: unknown, sessionId: string, status: string) => callback(sessionId, status);
+    ipcRenderer.on(CH.EVENT_SESSION_STATUS, handler);
+    return () => ipcRenderer.removeListener(CH.EVENT_SESSION_STATUS, handler);
+  },
+};
+
+contextBridge.exposeInMainWorld("electronAPI", api);

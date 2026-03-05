@@ -1,0 +1,25 @@
+appId: com.danielklevebring.codez
+productName: Codez
+directories:
+  output: release
+  buildResources: resources
+npmRebuild: true
+nodeGypRebuild: false
+files:
+  - dist/**/*
+  - node_modules/**/*
+  - "!node_modules/**/*.{md,map,ts}"
+mac:
+  category: public.app-category.developer-tools
+  target:
+    - target: dmg
+      arch:
+        - arm64
+  hardenedRuntime: true
+  gatekeeperAssess: false
+  entitlements: resources/entitlements.mac.plist
+  entitlementsInherit: resources/entitlements.mac.plist
+publish: null
+afterSign: notarize.cjs
+dmg:
+  sign: false

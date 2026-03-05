@@ -1,0 +1,43 @@
+import { useEffect } from "react";
+import { useSessionStore } from "./stores/sessionStore";
+import { useThemeStore } from "./stores/themeStore";
+import { useGlobalShortcuts } from "./hooks/useGlobalShortcuts";
+import { Sidebar } from "./components/Sidebar/Sidebar";
+import { SessionView } from "./components/SessionView/SessionView";
+import { SettingsPanel } from "./components/SettingsPanel/SettingsPanel";
+
+export function App() {
+  const handleAgentEvent = useSessionStore((state) => state.handleAgentEvent);
+  const handleStatusChange = useSessionStore((state) => state.handleStatusChange);
+  const loadTheme = useThemeStore((state) => state.loadTheme);
+
+  useGlobalShortcuts();
+
+  // Load persisted theme on mount
+  useEffect(() => {
+    loadTheme();
+  }, [loadTheme]);
+
+  // Subscribe to main process events
+  useEffect(() => {
+    if (!window.electronAPI) return;
+    const unsubAgent = window.electronAPI.onAgentEvent(handleAgentEvent);
+    const unsubStatus = window.electronAPI.onSessionStatusChanged(handleStatusChange);
+    return () => {
+      unsubAgent();
+      unsubStatus();
+    };
+  }, [handleAgentEvent, handleStatusChange]);
+
+  return (
+    <div className="flex h-screen select-none bg-base">
+      <Sidebar />
+      <main className="flex-1 flex flex-col min-h-0 bg-base">
+        {/* Draggable title bar region */}
+        <div className="h-12 [-webkit-app-region:drag]" />
+        <SessionView />
+      </main>
+      <SettingsPanel />
+    </div>
+  );
+}
