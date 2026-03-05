@@ -30,14 +30,18 @@ jobs:
           cache: npm
 
       - name: Set version
-        run: npm version ${{ github.event.inputs.version }} --no-git-tag-version --allow-same-version
+        id: version
+        run: |
+          npm version ${{ github.event.inputs.version }} --no-git-tag-version --allow-same-version
+          VERSION=$(node -p "require('./package.json').version")
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
 
       - name: Commit version bump
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add package.json package-lock.json
-          git diff --cached --quiet || git commit -m "Bump version to ${{ github.event.inputs.version }}"
+          git diff --cached --quiet || git commit -m "Bump version to ${{ steps.version.outputs.version }}"
           git push
 
       - name: Install dependencies
@@ -68,7 +72,8 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
+          TAG="v${{ steps.version.outputs.version }}"
           NOTES=$(gh api repos/${{ github.repository }}/releases/generate-notes \
-            -f tag_name="v${{ github.event.inputs.version }}" \
+            -f tag_name="$TAG" \
             --jq '.body')
-          gh release edit "v${{ github.event.inputs.version }}" --notes "$NOTES"
+          gh release edit "$TAG" --notes "$NOTES"
