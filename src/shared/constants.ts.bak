@@ -35,8 +35,6 @@ export const IPC = {
   SETTINGS_SAVE_SHORTCUTS: "settings:saveShortcuts",
   SETTINGS_GET: "settings:get",
   SETTINGS_SAVE: "settings:save",
-  SETTINGS_GET_MISTRAL_API_KEY: "settings:getMistralApiKey",
-  SETTINGS_SET_MISTRAL_API_KEY: "settings:setMistralApiKey",
 
   // App
   APP_GET_INFO: "app:getInfo",

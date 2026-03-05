@@ -67,7 +67,7 @@ export function registerIpcHandlers(options: RegisterHandlersOptions): void {
         }
       }
       
-      // For Mistral sessions, ensure we have the API key from either environment or settings
+      // For Mistral sessions, try to use the user's shell to inherit proper environment
       if (binary === "vibe") {
         const settingsApiKey = getMistralApiKey(settingsPath);
         
@@ -77,8 +77,19 @@ export function registerIpcHandlers(options: RegisterHandlersOptions): void {
           cleanEnv.MISTRAL_API_KEY = settingsApiKey;
         }
         
-        // Log final environment status
-        console.log(`[MistralDebug] Final MISTRAL_API_KEY status: ${cleanEnv.MISTRAL_API_KEY ? 'SET' : 'NOT SET'}`);
+        // Try to detect user's shell and use it to launch the command
+        const userShell = process.env.SHELL || "/bin/zsh";
+        console.log(`[MistralDebug] Using shell: ${userShell}`);
+        
+        // Construct the full command to run in the shell
+        const fullCommand = `vibe ${args.join(' ')}`;
+        
+        return spawn(userShell, ['-i', '-c', fullCommand], {
+          ...spawnOptions,
+          stdio: ["ignore", "pipe", "pipe"],
+          env: cleanEnv,
+          shell: true
+        });
       }
       
       return spawn(binary, args, { ...spawnOptions, stdio: ["ignore", "pipe", "pipe"], env: cleanEnv });

@@ -50,8 +50,6 @@ export function Sidebar() {
     }
   }, [selectedRepoPath, loadSessions, loadArchivedSessions]);
 
-  const openMistralApiKeyDialog = useThemeStore((state) => state.openMistralApiKeyDialog);
-
   const handleNewSession = async () => {
     if (!selectedRepoPath) return;
     
@@ -66,7 +64,9 @@ export function Sidebar() {
             console.log(`[${appInfo.name}] Mistral API key required but not configured`);
           });
         }
-        openMistralApiKeyDialog();
+        // Import theme store dynamically to avoid circular dependency
+        const { useThemeStore } = await import("../stores/themeStore");
+        useThemeStore.getState().openMistralApiKeyDialog();
         return;
       }
     }

@@ -2,15 +2,6 @@ import type { AgentType } from "../../shared/agent-types.js";
 import { ClaudeAdapter } from "./claude-adapter.js";
 import { MistralAdapter } from "./mistral-adapter.js";
 
-interface CreateAdapterOptions {
-  agentType: AgentType;
-  sessionId: string;
-  worktreePath: string;
-  allowedTools?: string[];
-  additionalDirs?: string[];
-  permissionMode?: string;
-}
-
 export function createAdapter(options: CreateAdapterOptions): ClaudeAdapter | MistralAdapter {
   switch (options.agentType) {
     case "claude":

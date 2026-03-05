@@ -59,50 +59,34 @@ export class SessionLifecycle extends EventEmitter {
     console.log(`[MistralDebug] Starting session with agentType: ${params.agentType}`);
     
     // Check for MISTRAL_API_KEY before creating session for Mistral agent
-    if (params.agentType === "mistral") {
-      const envApiKey = process.env.MISTRAL_API_KEY;
-      const settingsApiKey = this.getMistralApiKey();
-      const apiKey = envApiKey || settingsApiKey;
+    if (params.agentType === "mistral" && !process.env.MISTRAL_API_KEY) {
+      const errorMessage = `Mistral Vibe requires MISTRAL_API_KEY environment variable to be set. ` +
+                          `Please set it in your shell environment and restart Codez.`;
+      console.error(`[MistralDebug] ERROR: ${errorMessage}`);
       
-      console.log(`[MistralDebug] MISTRAL_API_KEY from env: ${envApiKey ? 'SET' : 'NOT SET'}`);
-      console.log(`[MistralDebug] MISTRAL_API_KEY from settings: ${settingsApiKey ? 'SET' : 'NOT SET'}`);
+      // Create session with error status immediately
+      const session = createSession(this.db, {
+        repoPath: params.repoPath,
+        worktreePath: params.worktreePath,
+        agentType: params.agentType,
+        name: params.name,
+      });
       
-      if (!apiKey) {
-        const errorMessage = `Mistral Vibe requires an API key. ` +
-                          `You can set it in your shell environment (MISTRAL_API_KEY) ` +
-                          `or configure it in Codez settings.`;
-        console.error(`[MistralDebug] ERROR: ${errorMessage}`);
-        
-        // Create session with error status immediately
-        const session = createSession(this.db, {
-          repoPath: params.repoPath,
-          worktreePath: params.worktreePath,
-          agentType: params.agentType,
-          name: params.name,
-        });
-        
-        updateSessionStatus(this.db, session.id, "error");
-        
-        // Emit a user-friendly error event
-        this.emit("agentEvent", {
-          type: "error",
-          sessionId: session.id,
-          timestamp: Date.now(),
-          data: { 
-            message: errorMessage,
-            suggestion: "Set MISTRAL_API_KEY environment variable or configure API key in settings."
-          },
-        });
-        
-        this.emit("statusChanged", session.id, "error");
-        return session; // Return early to prevent spawn attempt
-      }
+      updateSessionStatus(this.db, session.id, "error");
       
-      // If we have an API key from settings but not from environment, add it to the environment
-      if (settingsApiKey && !envApiKey) {
-        console.log(`[MistralDebug] Using API key from settings`);
-        process.env.MISTRAL_API_KEY = settingsApiKey;
-      }
+      // Emit a user-friendly error event
+      this.emit("agentEvent", {
+        type: "error",
+        sessionId: session.id,
+        timestamp: Date.now(),
+        data: { 
+          message: errorMessage,
+          suggestion: "Set MISTRAL_API_KEY in your environment and restart the application."
+        },
+      });
+      
+      this.emit("statusChanged", session.id, "error");
+      return session; // Return early to prevent spawn attempt
     }
 
     const session = createSession(this.db, {

@@ -7,7 +7,6 @@ export interface AgentConfig {
   binaryPath: string;
   defaultPermissions: string[];
   extraFlags: string[];
-  apiKey?: string;
 }
 
 export interface SessionInfo {

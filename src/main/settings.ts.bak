@@ -28,23 +28,3 @@ export function getShortcutOverrides(settingsPath: string): Record<string, strin
 export function saveShortcutOverrides(settingsPath: string, overrides: Record<string, string>): void {
   writeSettings(settingsPath, { shortcuts: overrides });
 }
-
-export function getMistralApiKey(settingsPath: string): string | null {
-  const settings = readSettings(settingsPath);
-  return settings.agentConfigs?.mistral?.apiKey ?? null;
-}
-
-export function setMistralApiKey(settingsPath: string, apiKey: string): void {
-  const existing = readSettings(settingsPath);
-  const updatedSettings = {
-    ...existing,
-    agentConfigs: {
-      ...existing.agentConfigs,
-      mistral: {
-        ...existing.agentConfigs?.mistral,
-        apiKey: apiKey,
-      },
-    },
-  };
-  writeSettings(settingsPath, updatedSettings);
-}

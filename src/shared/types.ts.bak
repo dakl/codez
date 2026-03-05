@@ -73,8 +73,6 @@ export interface ElectronAPI {
   saveShortcutOverrides: (overrides: Record<string, string>) => Promise<void>;
   getSettings: () => Promise<AppSettings>;
   saveSettings: (settings: Partial<AppSettings>) => Promise<void>;
-  getMistralApiKey: () => Promise<string | null>;
-  setMistralApiKey: (apiKey: string) => Promise<void>;
 
   // App
   getAppInfo: () => Promise<{ name: string; version: string }>;

@@ -96,25 +96,4 @@ describe("themeStore", () => {
 
     expect(useThemeStore.getState().activeThemeId).toBe(DEFAULT_THEME_ID);
   });
-
-  it("initializes with mistralApiKeyDialogOpen as false", async () => {
-    const { useThemeStore } = await import("./themeStore");
-    const state = useThemeStore.getState();
-    expect(state.mistralApiKeyDialogOpen).toBe(false);
-  });
-
-  it("openMistralApiKeyDialog sets mistralApiKeyDialogOpen to true", async () => {
-    const { useThemeStore } = await import("./themeStore");
-    expect(useThemeStore.getState().mistralApiKeyDialogOpen).toBe(false);
-    useThemeStore.getState().openMistralApiKeyDialog();
-    expect(useThemeStore.getState().mistralApiKeyDialogOpen).toBe(true);
-  });
-
-  it("closeMistralApiKeyDialog sets mistralApiKeyDialogOpen to false", async () => {
-    const { useThemeStore } = await import("./themeStore");
-    useThemeStore.getState().openMistralApiKeyDialog();
-    expect(useThemeStore.getState().mistralApiKeyDialogOpen).toBe(true);
-    useThemeStore.getState().closeMistralApiKeyDialog();
-    expect(useThemeStore.getState().mistralApiKeyDialogOpen).toBe(false);
-  });
 });

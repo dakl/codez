@@ -43,15 +43,6 @@ export function App() {
         <SessionView />
       </main>
       <SettingsPanel />
-      {mistralApiKeyDialogOpen && (
-        <MistralApiKeyDialog
-          onConfigure={() => {
-            closeMistralApiKeyDialog();
-            openSettings();
-          }}
-          onDismiss={closeMistralApiKeyDialog}
-        />
-      )}
     </div>
   );
 }

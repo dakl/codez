@@ -79,8 +79,6 @@ const api = {
     ipcRenderer.invoke(CH.SETTINGS_SAVE_SHORTCUTS, overrides),
   getSettings: () => ipcRenderer.invoke(CH.SETTINGS_GET),
   saveSettings: (settings: Record<string, unknown>) => ipcRenderer.invoke(CH.SETTINGS_SAVE, settings),
-  getMistralApiKey: () => ipcRenderer.invoke(CH.SETTINGS_GET_MISTRAL_API_KEY),
-  setMistralApiKey: (apiKey: string) => ipcRenderer.invoke(CH.SETTINGS_SET_MISTRAL_API_KEY, apiKey),
 
   // App
   getAppInfo: () => ipcRenderer.invoke(CH.APP_GET_INFO),

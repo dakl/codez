@@ -485,11 +485,7 @@ describe("SessionLifecycle", () => {
         const spawnFn = vi.fn().mockReturnValue(mockProcess);
         const mockEmit = vi.fn();
         
-        const lifecycle = new SessionLifecycle({ 
-          db, 
-          spawnFn,
-          getMistralApiKey: () => null // Mock settings to return no API key
-        });
+        const lifecycle = new SessionLifecycle({ db, spawnFn });
         lifecycle.emit = mockEmit;
         
         const session = lifecycle.startSession({
@@ -505,7 +501,7 @@ describe("SessionLifecycle", () => {
           type: "error",
           sessionId: session.id,
           data: expect.objectContaining({
-            message: expect.stringContaining("API key"),
+            message: expect.stringContaining("MISTRAL_API_KEY"),
           }),
         }));
         
@@ -520,43 +516,6 @@ describe("SessionLifecycle", () => {
       } finally {
         // Restore original environment
         process.env = originalEnv;
-      }
-    });
-    
-    it("uses API key from settings when environment variable is not set", () => {
-      // Mock process.env to simulate missing API key
-      const originalEnv = process.env;
-      delete process.env.MISTRAL_API_KEY;
-      
-      try {
-        const mockProcess = createMockProcess();
-        const spawnFn = vi.fn().mockReturnValue(mockProcess);
-        
-        const lifecycle = new SessionLifecycle({ 
-          db, 
-          spawnFn,
-          getMistralApiKey: () => "test-api-key-from-settings" // Mock settings to return API key
-        });
-        
-        const session = lifecycle.startSession({
-          repoPath: "/Users/dan/project",
-          worktreePath: "/tmp/wt",
-          agentType: "mistral",
-          name: "Test Mistral Session",
-          prompt: "Test prompt",
-        });
-        
-        // Should proceed normally since we have API key from settings
-        expect(session.status).toBe("running");
-        expect(spawnFn).toHaveBeenCalled();
-        
-        // Verify that the API key was set in process.env
-        expect(process.env.MISTRAL_API_KEY).toBe("test-api-key-from-settings");
-        
-      } finally {
-        // Restore original environment and clean up
-        process.env = originalEnv;
-        delete process.env.MISTRAL_API_KEY;
       }
     });
   });

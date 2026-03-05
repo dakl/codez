@@ -51,8 +51,7 @@ describe("createAdapter", () => {
     });
     const args = adapter.buildStartArgs("hello world");
     expect(args).toContain("-p");
-    // Note: prompts are now prefixed with "Codebase analysis task: "
-    expect(args.some(arg => arg.includes("Codebase analysis task:"))).toBe(true);
+    expect(args).toContain("hello world");
     // streaming is now a positional argument after -p
     expect(args).toContain("streaming");
     // Note: vibe doesn't support --session-id for new sessions like claude does

@@ -25,7 +25,6 @@ interface ThemeState {
 export const useThemeStore = create<ThemeState>((set) => ({
   activeThemeId: DEFAULT_THEME_ID,
   settingsOpen: false,
-  mistralApiKeyDialogOpen: false,
 
   toggleSettings: () => {
     set((state) => ({ settingsOpen: !state.settingsOpen }));
@@ -33,14 +32,6 @@ export const useThemeStore = create<ThemeState>((set) => ({
 
   closeSettings: () => {
     set({ settingsOpen: false });
-  },
-
-  openMistralApiKeyDialog: () => {
-    set({ mistralApiKeyDialogOpen: true });
-  },
-
-  closeMistralApiKeyDialog: () => {
-    set({ mistralApiKeyDialogOpen: false });
   },
 
   setTheme: (id) => {
