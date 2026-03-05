@@ -1,8 +1,29 @@
+import { execFileSync } from "node:child_process";
 import path from "node:path";
 import { app, BrowserWindow } from "electron";
 import { createDatabase } from "./db/connection.js";
 import { registerIpcHandlers } from "./ipc-handlers.js";
 import { getDbPath, getSettingsPath } from "./paths.js";
+
+// Packaged macOS apps don't inherit the user's shell PATH.
+// Resolve it once at startup so spawned CLI tools (claude, etc.) are found.
+function fixPath(): void {
+  if (process.platform !== "darwin" || !app.isPackaged) return;
+  try {
+    const shell = process.env.SHELL || "/bin/zsh";
+    const shellPath = execFileSync(shell, ["-ilc", "echo $PATH"], {
+      encoding: "utf8",
+      timeout: 5000,
+    }).trim();
+    if (shellPath) {
+      process.env.PATH = shellPath;
+    }
+  } catch {
+    // Fall through with default PATH if shell fails
+  }
+}
+
+fixPath();
 
 let mainWindow: BrowserWindow | null = null;
 
