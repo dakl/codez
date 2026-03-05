@@ -29,8 +29,17 @@ export interface ElectronAPI {
   sendMessage: (sessionId: string, message: string) => Promise<void>;
   stopSession: (sessionId: string) => Promise<void>;
   deleteSession: (sessionId: string) => Promise<void>;
+  archiveSession: (sessionId: string) => Promise<void>;
+  restoreSession: (sessionId: string) => Promise<void>;
   listSessions: (repoPath?: string) => Promise<SessionInfo[]>;
+  listArchivedSessions: (repoPath?: string) => Promise<SessionInfo[]>;
   getSessionMessages: (sessionId: string) => Promise<AgentMessage[]>;
+  respondPermission: (
+    sessionId: string,
+    requestId: string,
+    approved: boolean,
+    updatedInput?: Record<string, unknown>,
+  ) => Promise<void>;
 
   // Repos
   addRepo: (path: string) => Promise<RepoInfo>;

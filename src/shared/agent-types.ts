@@ -6,7 +6,8 @@ export type SessionStatus =
   | "waiting_for_input"
   | "paused"
   | "completed"
-  | "error";
+  | "error"
+  | "archived";
 
 export interface AgentConfig {
   type: AgentType;
@@ -40,6 +41,7 @@ export type AgentEventType =
   | "session_start"
   | "session_end"
   | "waiting_for_input"
+  | "permission_request"
   | "error";
 
 export interface AgentEvent {
@@ -59,6 +61,12 @@ export interface AgentMessage {
   isError?: boolean;
   thinking?: string;
   timestamp: string;
+}
+
+export interface PermissionRequestData {
+  requestId: string;
+  toolName: string;
+  toolInput: Record<string, unknown>;
 }
 
 export interface ChangedFile {

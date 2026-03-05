@@ -5,8 +5,12 @@ export const IPC = {
   SESSIONS_SEND_MESSAGE: "sessions:sendMessage",
   SESSIONS_STOP: "sessions:stop",
   SESSIONS_DELETE: "sessions:delete",
+  SESSIONS_ARCHIVE: "sessions:archive",
+  SESSIONS_RESTORE: "sessions:restore",
   SESSIONS_LIST: "sessions:list",
+  SESSIONS_LIST_ARCHIVED: "sessions:listArchived",
   SESSIONS_GET_MESSAGES: "sessions:getMessages",
+  SESSIONS_RESPOND_PERMISSION: "sessions:respondPermission",
 
   // Repos
   REPOS_ADD: "repos:add",

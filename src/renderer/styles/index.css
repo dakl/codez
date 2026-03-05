@@ -29,6 +29,9 @@
   --color-border: #232738;
   --color-border-subtle: #1C2030;
   --color-border-strong: #3B4160;
+
+  --color-code-bg: #232738;
+  --color-code-bg-inline: #2A2E40;
 }
 
 :root {

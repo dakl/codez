@@ -62,6 +62,7 @@ export function MessageInput({ onSend, disabled = false }: MessageInputProps) {
           onClick={handleSend}
           disabled={disabled || !text.trim()}
           type="button"
+          title="Send message (↵)"
           className="rounded-lg bg-accent px-4 py-2.5 text-sm font-medium text-white hover:bg-accent-hover disabled:opacity-30 disabled:hover:bg-accent transition-colors"
         >
           Send

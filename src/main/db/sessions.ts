@@ -51,11 +51,11 @@ export function getSession(db: Database.Database, sessionId: string): SessionInf
 export function listSessions(db: Database.Database, repoPath?: string): SessionInfo[] {
   if (repoPath) {
     const rows = db
-      .prepare("SELECT * FROM sessions WHERE repo_path = ? ORDER BY last_active_at DESC")
+      .prepare("SELECT * FROM sessions WHERE repo_path = ? AND status != 'archived' ORDER BY last_active_at DESC")
       .all(repoPath) as SessionRow[];
     return rows.map(rowToSession);
   }
-  const rows = db.prepare("SELECT * FROM sessions ORDER BY last_active_at DESC").all() as SessionRow[];
+  const rows = db.prepare("SELECT * FROM sessions WHERE status != 'archived' ORDER BY last_active_at DESC").all() as SessionRow[];
   return rows.map(rowToSession);
 }
 
@@ -65,6 +65,25 @@ export function updateSessionStatus(db: Database.Database, sessionId: string, st
 
 export function updateAgentSessionId(db: Database.Database, sessionId: string, agentSessionId: string): void {
   db.prepare("UPDATE sessions SET agent_session_id = ? WHERE id = ?").run(agentSessionId, sessionId);
+}
+
+export function archiveSession(db: Database.Database, sessionId: string): void {
+  db.prepare("UPDATE sessions SET status = 'archived', last_active_at = datetime('now') WHERE id = ?").run(sessionId);
+}
+
+export function restoreSession(db: Database.Database, sessionId: string): void {
+  db.prepare("UPDATE sessions SET status = 'idle', last_active_at = datetime('now') WHERE id = ?").run(sessionId);
+}
+
+export function listArchivedSessions(db: Database.Database, repoPath?: string): SessionInfo[] {
+  if (repoPath) {
+    const rows = db
+      .prepare("SELECT * FROM sessions WHERE repo_path = ? AND status = 'archived' ORDER BY last_active_at DESC")
+      .all(repoPath) as SessionRow[];
+    return rows.map(rowToSession);
+  }
+  const rows = db.prepare("SELECT * FROM sessions WHERE status = 'archived' ORDER BY last_active_at DESC").all() as SessionRow[];
+  return rows.map(rowToSession);
 }
 
 export function deleteSession(db: Database.Database, sessionId: string): void {

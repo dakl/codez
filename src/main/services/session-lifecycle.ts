@@ -144,6 +144,38 @@ export class SessionLifecycle extends EventEmitter {
     this.attachProcessListeners(sessionId, proc);
   }
 
+  respondPermission(
+    sessionId: string,
+    requestId: string,
+    approved: boolean,
+    updatedInput?: Record<string, unknown>,
+  ): void {
+    const active = this.activeSessions.get(sessionId);
+    if (!active?.process?.stdin) {
+      throw new Error(`No running process for session: ${sessionId}`);
+    }
+
+    const controlResponse = approved
+      ? {
+          type: "control_response",
+          request_id: requestId,
+          response: {
+            subtype: "success",
+            response: { behavior: "allow", updatedInput: updatedInput ?? {} },
+          },
+        }
+      : {
+          type: "control_response",
+          request_id: requestId,
+          response: {
+            subtype: "success",
+            response: { behavior: "deny", message: "User denied" },
+          },
+        };
+
+    active.process.stdin.write(JSON.stringify(controlResponse) + "\n");
+  }
+
   stopSession(sessionId: string): void {
     const active = this.activeSessions.get(sessionId);
     if (!active?.process) return;
@@ -199,12 +231,15 @@ export class SessionLifecycle extends EventEmitter {
 
     let stderrBuffer = "";
     proc.stderr?.on("data", (chunk: Buffer | string) => {
-      stderrBuffer += typeof chunk === "string" ? chunk : chunk.toString("utf-8");
+      const text = typeof chunk === "string" ? chunk : chunk.toString("utf-8");
+      stderrBuffer += text;
+      console.error(`[session ${sessionId}] stderr:`, text.trim());
     });
 
     proc.on("close", (code: number | null, signal: string | null) => {
       // If process was null, stopSession() already handled the status update
       if (!active.process) return;
+      active.process = null;
 
       if (code === 0) {
         updateSessionStatus(this.db, sessionId, "waiting_for_input");

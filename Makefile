@@ -22,7 +22,7 @@ test-e2e:
 	npm run test:e2e
 
 build-release: test build
-	npx electron-builder --mac
+	npx electron-builder --mac --arm64 --publish never
 
 clean:
 	rm -rf dist release

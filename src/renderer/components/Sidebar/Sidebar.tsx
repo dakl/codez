@@ -6,10 +6,15 @@ import type { PermissionMode } from "@shared/types";
 
 export function Sidebar() {
   const sessions = useSessionStore((state) => state.sessions);
+  const archivedSessions = useSessionStore((state) => state.archivedSessions);
   const activeSessionId = useSessionStore((state) => state.activeSessionId);
   const setActiveSession = useSessionStore((state) => state.setActiveSession);
   const createSession = useSessionStore((state) => state.createSession);
   const loadSessions = useSessionStore((state) => state.loadSessions);
+  const loadArchivedSessions = useSessionStore((state) => state.loadArchivedSessions);
+  const archiveSession = useSessionStore((state) => state.archiveSession);
+  const restoreSession = useSessionStore((state) => state.restoreSession);
+  const deleteSession = useSessionStore((state) => state.deleteSession);
 
   const repos = useRepoStore((state) => state.repos);
   const selectedRepoPath = useRepoStore((state) => state.selectedRepoPath);
@@ -18,6 +23,7 @@ export function Sidebar() {
   const addRepoViaDialog = useRepoStore((state) => state.addRepoViaDialog);
 
   const [permissionMode, setPermissionMode] = useState<PermissionMode>("default");
+  const [archiveOpen, setArchiveOpen] = useState(false);
 
   // Load repos and settings on mount
   useEffect(() => {
@@ -35,8 +41,9 @@ export function Sidebar() {
   useEffect(() => {
     if (selectedRepoPath) {
       loadSessions(selectedRepoPath);
+      loadArchivedSessions(selectedRepoPath);
     }
-  }, [selectedRepoPath, loadSessions]);
+  }, [selectedRepoPath, loadSessions, loadArchivedSessions]);
 
   const handleNewSession = async () => {
     if (!selectedRepoPath) return;
@@ -87,6 +94,7 @@ export function Sidebar() {
           onClick={handleNewSession}
           disabled={!selectedRepoPath}
           type="button"
+          title="Create a new session (⌘N)"
           className="w-full rounded-md bg-accent px-3 py-1.5 text-xs font-medium text-text-inverse hover:bg-accent-hover disabled:opacity-30 transition-colors [-webkit-app-region:no-drag]"
         >
           New Session ⌘N
@@ -108,10 +116,43 @@ export function Sidebar() {
               session={session}
               isActive={session.id === activeSessionId}
               onClick={() => setActiveSession(session.id)}
+              onArchive={() => archiveSession(session.id)}
             />
           ))
         )}
       </div>
+
+      {/* Archive accordion */}
+      {archivedSessions.length > 0 && (
+        <div className="border-t border-border">
+          <button
+            type="button"
+            onClick={() => setArchiveOpen(!archiveOpen)}
+            title={archiveOpen ? "Collapse archive" : "Expand archive"}
+            className="w-full flex items-center gap-2 px-3 py-2 text-xs text-text-muted hover:text-text-secondary transition-colors"
+          >
+            <ChevronIcon open={archiveOpen} />
+            <span>Archive</span>
+            <span className="ml-auto text-[10px] bg-surface-hover rounded-full px-1.5 py-0.5">
+              {archivedSessions.length}
+            </span>
+          </button>
+          {archiveOpen && (
+            <div className="px-2 pb-2 space-y-0.5 max-h-48 overflow-y-auto">
+              {archivedSessions.map((session) => (
+                <SessionListItem
+                  key={session.id}
+                  session={session}
+                  isActive={session.id === activeSessionId}
+                  onClick={() => setActiveSession(session.id)}
+                  onRestore={() => restoreSession(session.id)}
+                  onDelete={() => deleteSession(session.id)}
+                />
+              ))}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Permission mode selector */}
       <div className="px-3 py-2 border-t border-border">
@@ -130,5 +171,23 @@ export function Sidebar() {
         </select>
       </div>
     </aside>
+  );
+}
+
+function ChevronIcon({ open }: { open: boolean }) {
+  return (
+    <svg
+      width="12"
+      height="12"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={`transition-transform ${open ? "rotate-90" : ""}`}
+    >
+      <polyline points="9 18 15 12 9 6" />
+    </svg>
   );
 }

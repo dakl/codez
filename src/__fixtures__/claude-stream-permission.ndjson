@@ -1,0 +1,6 @@
+{"type":"system","subtype":"init","session_id":"sess-perm-1","tools":["Bash","Read","Edit","Write"],"mcp_servers":[]}
+{"type":"assistant","message":{"id":"msg_01","type":"message","role":"assistant","content":[{"type":"tool_use","id":"toolu_01","name":"Bash","input":{"command":"git commit -m 'fix typo'"}}],"model":"claude-sonnet-4-6","stop_reason":"tool_use"},"session_id":"sess-perm-1"}
+{"type":"control_request","request_id":"req_1_abc","request":{"subtype":"can_use_tool","tool_name":"Bash","input":{"command":"git commit -m 'fix typo'"}}}
+{"type":"user","message":{"role":"user","content":[{"type":"tool_result","tool_use_id":"toolu_01","content":"[main abc1234] fix typo\n 1 file changed, 1 insertion(+), 1 deletion(-)"}]},"session_id":"sess-perm-1"}
+{"type":"assistant","message":{"id":"msg_02","type":"message","role":"assistant","content":[{"type":"text","text":"Done! The commit has been created."}],"model":"claude-sonnet-4-6","stop_reason":"end_turn"},"session_id":"sess-perm-1"}
+{"type":"result","result":"Done! The commit has been created.","session_id":"sess-perm-1","is_error":false,"total_cost_usd":0.003,"usage":{"input_tokens":500,"output_tokens":50}}

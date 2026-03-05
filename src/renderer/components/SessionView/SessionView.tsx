@@ -4,6 +4,7 @@ import { MessageBubble } from "./MessageBubble";
 import { MessageInput } from "./MessageInput";
 import { StreamingIndicator } from "./StreamingIndicator";
 import { ThinkingIndicator } from "./ThinkingIndicator";
+import { PermissionDialog } from "../PermissionDialog";
 
 export function SessionView() {
   const activeSessionId = useSessionStore((state) => state.activeSessionId);
@@ -13,6 +14,8 @@ export function SessionView() {
   const streamingThinking = useSessionStore((state) => state.streamingThinking);
   const sendMessage = useSessionStore((state) => state.sendMessage);
   const stopSession = useSessionStore((state) => state.stopSession);
+  const pendingPermissions = useSessionStore((state) => state.pendingPermissions);
+  const respondPermission = useSessionStore((state) => state.respondPermission);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const isAtBottom = useRef(true);
@@ -25,6 +28,7 @@ export function SessionView() {
   const currentThinkingText = activeSessionId ? streamingThinking.get(activeSessionId) ?? "" : "";
 
   const isRunning = session?.status === "running";
+  const pendingPermission = activeSessionId ? pendingPermissions.get(activeSessionId) : undefined;
 
   // Double-Esc to cancel
   useEffect(() => {
@@ -117,6 +121,14 @@ export function SessionView() {
         onSend={(message) => sendMessage(activeSessionId, message)}
         disabled={isRunning}
       />
+
+      {pendingPermission && (
+        <PermissionDialog
+          permission={pendingPermission}
+          onApprove={() => respondPermission(activeSessionId, true)}
+          onDeny={() => respondPermission(activeSessionId, false)}
+        />
+      )}
     </div>
   );
 }

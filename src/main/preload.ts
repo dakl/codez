@@ -8,8 +8,12 @@ const CH = {
   SESSIONS_SEND_MESSAGE: "sessions:sendMessage",
   SESSIONS_STOP: "sessions:stop",
   SESSIONS_DELETE: "sessions:delete",
+  SESSIONS_ARCHIVE: "sessions:archive",
+  SESSIONS_RESTORE: "sessions:restore",
   SESSIONS_LIST: "sessions:list",
+  SESSIONS_LIST_ARCHIVED: "sessions:listArchived",
   SESSIONS_GET_MESSAGES: "sessions:getMessages",
+  SESSIONS_RESPOND_PERMISSION: "sessions:respondPermission",
   REPOS_ADD: "repos:add",
   REPOS_REMOVE: "repos:remove",
   REPOS_LIST: "repos:list",
@@ -38,8 +42,13 @@ const api = {
     ipcRenderer.invoke(CH.SESSIONS_SEND_MESSAGE, sessionId, message),
   stopSession: (sessionId: string) => ipcRenderer.invoke(CH.SESSIONS_STOP, sessionId),
   deleteSession: (sessionId: string) => ipcRenderer.invoke(CH.SESSIONS_DELETE, sessionId),
+  archiveSession: (sessionId: string) => ipcRenderer.invoke(CH.SESSIONS_ARCHIVE, sessionId),
+  restoreSession: (sessionId: string) => ipcRenderer.invoke(CH.SESSIONS_RESTORE, sessionId),
   listSessions: (repoPath?: string) => ipcRenderer.invoke(CH.SESSIONS_LIST, repoPath),
+  listArchivedSessions: (repoPath?: string) => ipcRenderer.invoke(CH.SESSIONS_LIST_ARCHIVED, repoPath),
   getSessionMessages: (sessionId: string) => ipcRenderer.invoke(CH.SESSIONS_GET_MESSAGES, sessionId),
+  respondPermission: (sessionId: string, requestId: string, approved: boolean, updatedInput?: Record<string, unknown>) =>
+    ipcRenderer.invoke(CH.SESSIONS_RESPOND_PERMISSION, sessionId, requestId, approved, updatedInput),
 
   // Repos
   addRepo: (repoPath: string) => ipcRenderer.invoke(CH.REPOS_ADD, repoPath),

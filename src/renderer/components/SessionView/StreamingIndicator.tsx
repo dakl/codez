@@ -18,12 +18,12 @@ export function StreamingIndicator({ text }: StreamingIndicatorProps) {
               p: ({ children }) => <p className="mb-2 last:mb-0">{children}</p>,
               code: ({ className, children, ...props }) =>
                 !className ? (
-                  <code className="bg-white/10 rounded px-1 py-0.5 font-mono text-[0.85em]" {...props}>{children}</code>
+                  <code className="bg-code-bg-inline rounded px-1 py-0.5 font-mono text-[0.85em]" {...props}>{children}</code>
                 ) : (
                   <code className={`${className} font-mono text-xs`} {...props}>{children}</code>
                 ),
               pre: ({ children }) => (
-                <pre className="bg-white/6 rounded-lg p-3 mb-2 overflow-x-auto text-xs font-mono">{children}</pre>
+                <pre className="bg-code-bg rounded-lg p-3 mb-2 overflow-x-auto text-xs font-mono">{children}</pre>
               ),
             }}
           >

@@ -9,6 +9,9 @@ import {
   updateSessionStatus,
   updateAgentSessionId,
   deleteSession,
+  archiveSession,
+  restoreSession,
+  listArchivedSessions,
 } from "./sessions";
 
 let db: Database.Database;
@@ -104,6 +107,107 @@ describe("updateAgentSessionId", () => {
     updateAgentSessionId(db, session.id, "claude-session-xyz");
     const updated = getSession(db, session.id)!;
     expect(updated.agentSessionId).toBe("claude-session-xyz");
+  });
+});
+
+describe("archiveSession", () => {
+  it("sets status to archived", () => {
+    const session = createSession(db, {
+      repoPath: "/Users/dan/project",
+      worktreePath: "/tmp/wt",
+      agentType: "claude",
+      name: "test",
+    });
+    archiveSession(db, session.id);
+    const updated = getSession(db, session.id)!;
+    expect(updated.status).toBe("archived");
+  });
+
+  it("hides session from listSessions", () => {
+    const session = createSession(db, {
+      repoPath: "/Users/dan/project",
+      worktreePath: "/tmp/wt",
+      agentType: "claude",
+      name: "test",
+    });
+    archiveSession(db, session.id);
+    expect(listSessions(db)).toEqual([]);
+    expect(listSessions(db, "/Users/dan/project")).toEqual([]);
+  });
+});
+
+describe("restoreSession", () => {
+  it("sets status back to idle", () => {
+    const session = createSession(db, {
+      repoPath: "/Users/dan/project",
+      worktreePath: "/tmp/wt",
+      agentType: "claude",
+      name: "test",
+    });
+    archiveSession(db, session.id);
+    restoreSession(db, session.id);
+    const updated = getSession(db, session.id)!;
+    expect(updated.status).toBe("idle");
+  });
+
+  it("makes session visible in listSessions again", () => {
+    const session = createSession(db, {
+      repoPath: "/Users/dan/project",
+      worktreePath: "/tmp/wt",
+      agentType: "claude",
+      name: "test",
+    });
+    archiveSession(db, session.id);
+    restoreSession(db, session.id);
+    expect(listSessions(db)).toHaveLength(1);
+  });
+});
+
+describe("listArchivedSessions", () => {
+  it("returns only archived sessions", () => {
+    const session1 = createSession(db, {
+      repoPath: "/Users/dan/project",
+      worktreePath: "/tmp/a",
+      agentType: "claude",
+      name: "active",
+    });
+    const session2 = createSession(db, {
+      repoPath: "/Users/dan/project",
+      worktreePath: "/tmp/b",
+      agentType: "claude",
+      name: "archived",
+    });
+    archiveSession(db, session2.id);
+
+    const archived = listArchivedSessions(db);
+    expect(archived).toHaveLength(1);
+    expect(archived[0].name).toBe("archived");
+  });
+
+  it("filters by repoPath", () => {
+    createRepo(db, "/Users/dan/other", "other");
+    const session1 = createSession(db, {
+      repoPath: "/Users/dan/project",
+      worktreePath: "/tmp/a",
+      agentType: "claude",
+      name: "a",
+    });
+    const session2 = createSession(db, {
+      repoPath: "/Users/dan/other",
+      worktreePath: "/tmp/b",
+      agentType: "claude",
+      name: "b",
+    });
+    archiveSession(db, session1.id);
+    archiveSession(db, session2.id);
+
+    const archived = listArchivedSessions(db, "/Users/dan/project");
+    expect(archived).toHaveLength(1);
+    expect(archived[0].name).toBe("a");
+  });
+
+  it("returns empty array when no archived sessions exist", () => {
+    expect(listArchivedSessions(db)).toEqual([]);
   });
 });
 

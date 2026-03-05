@@ -83,6 +83,7 @@ function ToolResultBubble({ message }: { message: AgentMessage }) {
       <button
         type="button"
         onClick={() => setIsExpanded(!isExpanded)}
+        title={isExpanded ? "Collapse output" : "Expand output"}
         className="flex items-center gap-1.5 hover:text-text-secondary transition-colors"
       >
         <span className={`transition-transform duration-150 text-[10px] ${isExpanded ? "rotate-90" : ""}`}>▶</span>
@@ -105,6 +106,7 @@ function ThinkingBlock({ text }: { text: string }) {
       <button
         type="button"
         onClick={() => setIsExpanded(!isExpanded)}
+        title={isExpanded ? "Collapse thinking" : "Expand thinking"}
         className="flex items-center gap-1.5 text-xs text-text-muted hover:text-text-secondary transition-colors"
       >
         <span className={`transition-transform duration-150 text-[10px] ${isExpanded ? "rotate-90" : ""}`}>▶</span>
@@ -148,7 +150,7 @@ function MarkdownContent({ content }: { content: string }) {
             const isInline = !className;
             if (isInline) {
               return (
-                <code className="bg-white/10 rounded px-1 py-0.5 font-mono text-[0.85em]" {...props}>
+                <code className="bg-code-bg-inline rounded px-1 py-0.5 font-mono text-[0.85em]" {...props}>
                   {children}
                 </code>
               );
@@ -160,7 +162,7 @@ function MarkdownContent({ content }: { content: string }) {
             );
           },
           pre: ({ children }) => (
-            <pre className="bg-white/6 rounded-lg p-3 mb-2 overflow-x-auto text-xs font-mono">{children}</pre>
+            <pre className="bg-code-bg rounded-lg p-3 mb-2 overflow-x-auto text-xs font-mono">{children}</pre>
           ),
           blockquote: ({ children }) => (
             <blockquote className="border-l-2 border-accent/50 pl-3 text-text-secondary italic mb-2">
@@ -179,7 +181,7 @@ function MarkdownContent({ content }: { content: string }) {
             </div>
           ),
           th: ({ children }) => (
-            <th className="border border-text-muted/30 px-2 py-1 font-semibold text-left bg-white/5">{children}</th>
+            <th className="border border-text-muted/30 px-2 py-1 font-semibold text-left bg-code-bg">{children}</th>
           ),
           td: ({ children }) => <td className="border border-text-muted/20 px-2 py-1">{children}</td>,
         }}

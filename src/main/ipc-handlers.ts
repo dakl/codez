@@ -3,7 +3,7 @@ import { spawn } from "node:child_process";
 import type Database from "better-sqlite3";
 import { IPC } from "../shared/constants.js";
 import { createRepo, listRepos, deleteRepo } from "./db/repos.js";
-import { createSession, listSessions, deleteSession } from "./db/sessions.js";
+import { createSession, listSessions, deleteSession, archiveSession, restoreSession, listArchivedSessions } from "./db/sessions.js";
 import { listMessages, deleteMessagesBySession, createMessage } from "./db/messages.js";
 import { SessionLifecycle } from "./services/session-lifecycle.js";
 import { readSettings, writeSettings, getShortcutOverrides, saveShortcutOverrides } from "./settings.js";
@@ -81,6 +81,26 @@ export function registerIpcHandlers(options: RegisterHandlersOptions): void {
     deleteMessagesBySession(db, sessionId);
     deleteSession(db, sessionId);
   });
+
+  ipcMain.handle(IPC.SESSIONS_ARCHIVE, (_event, sessionId: string) => {
+    lifecycle.stopSession(sessionId);
+    archiveSession(db, sessionId);
+  });
+
+  ipcMain.handle(IPC.SESSIONS_RESTORE, (_event, sessionId: string) => {
+    restoreSession(db, sessionId);
+  });
+
+  ipcMain.handle(IPC.SESSIONS_LIST_ARCHIVED, (_event, repoPath?: string) => {
+    return listArchivedSessions(db, repoPath);
+  });
+
+  ipcMain.handle(
+    IPC.SESSIONS_RESPOND_PERMISSION,
+    (_event, sessionId: string, requestId: string, approved: boolean, updatedInput?: Record<string, unknown>) => {
+      lifecycle.respondPermission(sessionId, requestId, approved, updatedInput);
+    },
+  );
 
   // --- Repos ---
 

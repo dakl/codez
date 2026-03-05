@@ -42,6 +42,7 @@ export function SettingsPanel() {
           <button
             type="button"
             onClick={closeSettings}
+            title="Close settings (Esc)"
             className="text-text-muted hover:text-text-primary transition-colors cursor-pointer"
           >
             <svg width="16" height="16" viewBox="0 0 16 16" fill="none">

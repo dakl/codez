@@ -98,6 +98,11 @@ export class ClaudeAdapter {
           }
           break;
         }
+        case "control_request": {
+          const event = this.parseControlRequest(line);
+          if (event) events.push(event);
+          break;
+        }
         case "result": {
           const event = this.parseResultMessage(line);
           events.push(event);
@@ -237,6 +242,18 @@ export class ClaudeAdapter {
       }
     }
     return events;
+  }
+
+  private parseControlRequest(line: Record<string, unknown>): AgentEvent | null {
+    const requestId = line.request_id as string;
+    const request = line.request as Record<string, unknown> | undefined;
+    if (!request || request.subtype !== "can_use_tool") return null;
+
+    return this.makeEvent("permission_request", {
+      requestId,
+      toolName: request.tool_name as string,
+      toolInput: request.input as Record<string, unknown>,
+    });
   }
 
   private parseResultMessage(line: Record<string, unknown>): AgentEvent {

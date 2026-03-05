@@ -8,15 +8,21 @@ import { listMessages } from "../db/messages";
 import { SessionLifecycle } from "./session-lifecycle";
 import type { AgentEvent } from "@shared/agent-types";
 
-// Simulate a child process with controllable stdout and exit
+// Simulate a child process with controllable stdout, stderr, stdin and exit
 function createMockProcess() {
   const stdout = new EventEmitter();
+  const stderr = new EventEmitter();
+  const stdin = { write: vi.fn(), end: vi.fn() };
   const proc = new EventEmitter() as EventEmitter & {
     stdout: EventEmitter;
+    stderr: EventEmitter;
+    stdin: { write: ReturnType<typeof vi.fn>; end: ReturnType<typeof vi.fn> };
     pid: number;
-    kill: () => void;
+    kill: ReturnType<typeof vi.fn>;
   };
   proc.stdout = stdout;
+  proc.stderr = stderr;
+  proc.stdin = stdin;
   proc.pid = 12345;
   proc.kill = vi.fn();
   return proc;
@@ -355,5 +361,98 @@ describe("SessionLifecycle", () => {
 
     const dbSession = getSession(db, session.id);
     expect(dbSession!.status).toBe("running");
+  });
+
+  it("emits permission_request event when control_request arrives on stdout", () => {
+    const mockProcess = createMockProcess();
+    const spawnFn = vi.fn().mockReturnValue(mockProcess);
+
+    const lifecycle = new SessionLifecycle({ db, spawnFn });
+    const events: AgentEvent[] = [];
+    lifecycle.on("agentEvent", (event: AgentEvent) => events.push(event));
+
+    lifecycle.startSession({
+      repoPath: "/Users/dan/project",
+      worktreePath: "/tmp/wt",
+      agentType: "claude",
+      name: "Test",
+      prompt: "Hello",
+    });
+
+    mockProcess.stdout.emit("data", JSON.stringify({
+      type: "control_request",
+      request_id: "req_1_abc",
+      request: { subtype: "can_use_tool", tool_name: "Bash", input: { command: "ls" } },
+    }) + "\n");
+
+    const permEvents = events.filter((e) => e.type === "permission_request");
+    expect(permEvents.length).toBe(1);
+    expect(permEvents[0].data.requestId).toBe("req_1_abc");
+    expect(permEvents[0].data.toolName).toBe("Bash");
+  });
+
+  it("writes allow control_response to stdin when respondPermission called with approved=true", () => {
+    const mockProcess = createMockProcess();
+    const spawnFn = vi.fn().mockReturnValue(mockProcess);
+
+    const lifecycle = new SessionLifecycle({ db, spawnFn });
+    const session = lifecycle.startSession({
+      repoPath: "/Users/dan/project",
+      worktreePath: "/tmp/wt",
+      agentType: "claude",
+      name: "Test",
+      prompt: "Hello",
+    });
+
+    lifecycle.respondPermission(session.id, "req_1_abc", true, { command: "ls" });
+
+    expect(mockProcess.stdin.write).toHaveBeenCalledOnce();
+    const written = JSON.parse(mockProcess.stdin.write.mock.calls[0][0]);
+    expect(written.type).toBe("control_response");
+    expect(written.request_id).toBe("req_1_abc");
+    expect(written.response.subtype).toBe("success");
+    expect(written.response.response.behavior).toBe("allow");
+    expect(written.response.response.updatedInput).toEqual({ command: "ls" });
+  });
+
+  it("writes deny control_response to stdin when respondPermission called with approved=false", () => {
+    const mockProcess = createMockProcess();
+    const spawnFn = vi.fn().mockReturnValue(mockProcess);
+
+    const lifecycle = new SessionLifecycle({ db, spawnFn });
+    const session = lifecycle.startSession({
+      repoPath: "/Users/dan/project",
+      worktreePath: "/tmp/wt",
+      agentType: "claude",
+      name: "Test",
+      prompt: "Hello",
+    });
+
+    lifecycle.respondPermission(session.id, "req_2", false);
+
+    expect(mockProcess.stdin.write).toHaveBeenCalledOnce();
+    const written = JSON.parse(mockProcess.stdin.write.mock.calls[0][0]);
+    expect(written.type).toBe("control_response");
+    expect(written.request_id).toBe("req_2");
+    expect(written.response.response.behavior).toBe("deny");
+  });
+
+  it("throws when respondPermission called for session with no running process", () => {
+    const mockProcess = createMockProcess();
+    const spawnFn = vi.fn().mockReturnValue(mockProcess);
+
+    const lifecycle = new SessionLifecycle({ db, spawnFn });
+    const session = lifecycle.startSession({
+      repoPath: "/Users/dan/project",
+      worktreePath: "/tmp/wt",
+      agentType: "claude",
+      name: "Test",
+      prompt: "Hello",
+    });
+
+    // Simulate process exit
+    mockProcess.emit("close", 0);
+
+    expect(() => lifecycle.respondPermission(session.id, "req_1", true)).toThrow();
   });
 });

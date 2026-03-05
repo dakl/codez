@@ -3,23 +3,30 @@ productName: Codez
 directories:
   output: release
   buildResources: resources
-npmRebuild: true
-nodeGypRebuild: false
 files:
   - dist/**/*
   - node_modules/**/*
   - "!node_modules/**/*.{md,map,ts}"
+asarUnpack:
+  - "**/node_modules/better-sqlite3/**"
+  - "**/node_modules/bindings/**"
+  - "**/node_modules/file-uri-to-path/**"
+publish:
+  provider: github
+  owner: dakl
+  repo: codez
+  releaseType: release
 mac:
   category: public.app-category.developer-tools
   target:
     - target: dmg
-      arch:
-        - arm64
+      arch: arm64
+    - target: zip
+      arch: arm64
   hardenedRuntime: true
   gatekeeperAssess: false
   entitlements: resources/entitlements.mac.plist
   entitlementsInherit: resources/entitlements.mac.plist
-publish: null
-afterSign: notarize.cjs
+  notarize: true
 dmg:
   sign: false

@@ -1,35 +1,48 @@
 import { create } from "zustand";
-import type { SessionInfo, AgentMessage, AgentEvent, SessionStatus } from "@shared/agent-types";
+import type { SessionInfo, AgentMessage, AgentEvent, SessionStatus, PermissionRequestData } from "@shared/agent-types";
 
 interface SessionState {
   sessions: SessionInfo[];
+  archivedSessions: SessionInfo[];
   activeSessionId: string | null;
   messages: Map<string, AgentMessage[]>;
   streamingText: Map<string, string>;
   streamingThinking: Map<string, string>;
+  pendingPermissions: Map<string, PermissionRequestData>;
 
   // Actions
   loadSessions: (repoPath?: string) => Promise<void>;
+  loadArchivedSessions: (repoPath?: string) => Promise<void>;
   createSession: (repoPath: string, agentType: "claude" | "mistral" | "gemini") => Promise<SessionInfo>;
   setActiveSession: (sessionId: string | null) => void;
   sendMessage: (sessionId: string, message: string) => Promise<void>;
   stopSession: (sessionId: string) => Promise<void>;
   loadMessages: (sessionId: string) => Promise<void>;
   deleteSession: (sessionId: string) => Promise<void>;
+  archiveSession: (sessionId: string) => Promise<void>;
+  restoreSession: (sessionId: string) => Promise<void>;
+  respondPermission: (sessionId: string, approved: boolean) => Promise<void>;
   handleAgentEvent: (event: AgentEvent) => void;
   handleStatusChange: (sessionId: string, status: SessionStatus) => void;
 }
 
 export const useSessionStore = create<SessionState>((set, get) => ({
   sessions: [],
+  archivedSessions: [],
   activeSessionId: null,
   messages: new Map(),
   streamingText: new Map(),
   streamingThinking: new Map(),
+  pendingPermissions: new Map(),
 
   loadSessions: async (repoPath) => {
     const sessions = await window.electronAPI.listSessions(repoPath);
     set({ sessions });
+  },
+
+  loadArchivedSessions: async (repoPath) => {
+    const archivedSessions = await window.electronAPI.listArchivedSessions(repoPath);
+    set({ archivedSessions });
   },
 
   createSession: async (repoPath, agentType) => {
@@ -99,11 +112,58 @@ export const useSessionStore = create<SessionState>((set, get) => ({
     await window.electronAPI.deleteSession(sessionId);
     set((state) => ({
       sessions: state.sessions.filter((s) => s.id !== sessionId),
+      archivedSessions: state.archivedSessions.filter((s) => s.id !== sessionId),
       activeSessionId: state.activeSessionId === sessionId ? null : state.activeSessionId,
     }));
   },
 
+  archiveSession: async (sessionId) => {
+    await window.electronAPI.archiveSession(sessionId);
+    set((state) => {
+      const session = state.sessions.find((s) => s.id === sessionId);
+      const archived = session ? { ...session, status: "archived" as const } : null;
+      return {
+        sessions: state.sessions.filter((s) => s.id !== sessionId),
+        archivedSessions: archived ? [archived, ...state.archivedSessions] : state.archivedSessions,
+        activeSessionId: state.activeSessionId === sessionId ? null : state.activeSessionId,
+      };
+    });
+  },
+
+  restoreSession: async (sessionId) => {
+    await window.electronAPI.restoreSession(sessionId);
+    set((state) => {
+      const session = state.archivedSessions.find((s) => s.id === sessionId);
+      const restored = session ? { ...session, status: "idle" as const } : null;
+      return {
+        archivedSessions: state.archivedSessions.filter((s) => s.id !== sessionId),
+        sessions: restored ? [restored, ...state.sessions] : state.sessions,
+      };
+    });
+  },
+
+  respondPermission: async (sessionId, approved) => {
+    const pending = get().pendingPermissions.get(sessionId);
+    if (!pending) return;
+
+    set((state) => {
+      const newPending = new Map(state.pendingPermissions);
+      newPending.delete(sessionId);
+      return { pendingPermissions: newPending };
+    });
+
+    await window.electronAPI.respondPermission(sessionId, pending.requestId, approved, approved ? pending.toolInput : undefined);
+  },
+
   handleAgentEvent: (event) => {
+    if (event.type === "permission_request") {
+      set((state) => {
+        const newPending = new Map(state.pendingPermissions);
+        newPending.set(event.sessionId, event.data as unknown as PermissionRequestData);
+        return { pendingPermissions: newPending };
+      });
+    }
+
     if (event.type === "thinking_delta") {
       set((state) => {
         const newStreamingThinking = new Map(state.streamingThinking);
@@ -140,8 +200,15 @@ export const useSessionStore = create<SessionState>((set, get) => ({
       get().loadMessages(event.sessionId);
     }
 
+    if (event.type === "session_end") {
+      set((state) => {
+        const newPending = new Map(state.pendingPermissions);
+        newPending.delete(event.sessionId);
+        return { pendingPermissions: newPending };
+      });
+    }
+
     if (event.type === "error") {
-      // Show error inline as a system message
       const errorMessage: AgentMessage = {
         id: `error-${Date.now()}`,
         sessionId: event.sessionId,
@@ -158,7 +225,9 @@ export const useSessionStore = create<SessionState>((set, get) => ({
         newStreamingText.delete(event.sessionId);
         const newStreamingThinking = new Map(state.streamingThinking);
         newStreamingThinking.delete(event.sessionId);
-        return { messages: newMessages, streamingText: newStreamingText, streamingThinking: newStreamingThinking };
+        const newPending = new Map(state.pendingPermissions);
+        newPending.delete(event.sessionId);
+        return { messages: newMessages, streamingText: newStreamingText, streamingThinking: newStreamingThinking, pendingPermissions: newPending };
       });
     }
   },

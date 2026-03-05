@@ -24,6 +24,8 @@ export const THEME_CSS_KEYS = [
   "border",
   "border-subtle",
   "border-strong",
+  "code-bg",
+  "code-bg-inline",
 ] as const;
 
 export type ThemeCSSKey = (typeof THEME_CSS_KEYS)[number];
@@ -65,6 +67,8 @@ export const themes: ThemeDefinition[] = [
       border: "#232738",
       "border-subtle": "#1C2030",
       "border-strong": "#3B4160",
+      "code-bg": "#232738",
+      "code-bg-inline": "#2A2E40",
     },
   },
   {
@@ -95,6 +99,8 @@ export const themes: ThemeDefinition[] = [
       border: "#382420",
       "border-subtle": "#2C1C18",
       "border-strong": "#604038",
+      "code-bg": "#2C2020",
+      "code-bg-inline": "#342828",
     },
   },
   {
@@ -125,6 +131,8 @@ export const themes: ThemeDefinition[] = [
       border: "#1E3428",
       "border-subtle": "#182A20",
       "border-strong": "#305040",
+      "code-bg": "#1C2A22",
+      "code-bg-inline": "#223028",
     },
   },
   // --- Light themes ---
@@ -156,6 +164,8 @@ export const themes: ThemeDefinition[] = [
       border: "#E2E4EC",
       "border-subtle": "#ECEEF5",
       "border-strong": "#C8CCD8",
+      "code-bg": "#ECEEF5",
+      "code-bg-inline": "#E2E4EC",
     },
   },
   {
@@ -186,6 +196,8 @@ export const themes: ThemeDefinition[] = [
       border: "#E4DCD0",
       "border-subtle": "#EDE6DA",
       "border-strong": "#C8BCA8",
+      "code-bg": "#EDE6DA",
+      "code-bg-inline": "#E4DCD0",
     },
   },
   {
@@ -216,6 +228,8 @@ export const themes: ThemeDefinition[] = [
       border: "#E8D8E0",
       "border-subtle": "#F0E4EA",
       "border-strong": "#D0B8C4",
+      "code-bg": "#F0E4EA",
+      "code-bg-inline": "#E8D8E0",
     },
   },
 ];
