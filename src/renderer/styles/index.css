@@ -2,36 +2,36 @@
 
 @theme {
   /* Codez color palette — blue-tinted dark theme */
-  --color-base: #0F1117;
-  --color-sidebar: #12141C;
-  --color-surface: #1A1D27;
+  --color-base: #0f1117;
+  --color-sidebar: #12141c;
+  --color-surface: #1a1d27;
   --color-surface-hover: #222638;
-  --color-elevated: #262A3A;
+  --color-elevated: #262a3a;
   --color-input: #161922;
 
-  --color-text-primary: #E8ECF4;
-  --color-text-secondary: #9BA2B8;
-  --color-text-muted: #5C6380;
-  --color-text-inverse: #0F1117;
+  --color-text-primary: #e8ecf4;
+  --color-text-secondary: #9ba2b8;
+  --color-text-muted: #5c6380;
+  --color-text-inverse: #0f1117;
 
-  --color-accent: #6C5CE7;
-  --color-accent-hover: #7E6FF0;
-  --color-accent-muted: #6C5CE720;
+  --color-accent: #6c5ce7;
+  --color-accent-hover: #7e6ff0;
+  --color-accent-muted: #6c5ce720;
 
-  --color-success: #34D399;
-  --color-success-muted: #34D39920;
-  --color-warning: #FBBF24;
-  --color-warning-muted: #FBBF2420;
-  --color-error: #F87171;
-  --color-error-muted: #F8717120;
-  --color-info: #60A5FA;
+  --color-success: #34d399;
+  --color-success-muted: #34d39920;
+  --color-warning: #fbbf24;
+  --color-warning-muted: #fbbf2420;
+  --color-error: #f87171;
+  --color-error-muted: #f8717120;
+  --color-info: #60a5fa;
 
   --color-border: #232738;
-  --color-border-subtle: #1C2030;
-  --color-border-strong: #3B4160;
+  --color-border-subtle: #1c2030;
+  --color-border-strong: #3b4160;
 
   --color-code-bg: #232738;
-  --color-code-bg-inline: #2A2E40;
+  --color-code-bg-inline: #2a2e40;
 }
 
 :root {
@@ -40,8 +40,7 @@
 
 body {
   margin: 0;
-  font-family:
-    -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", sans-serif;
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", sans-serif;
   -webkit-font-smoothing: antialiased;
   color: var(--color-text-primary);
   background: var(--color-base);
@@ -50,5 +49,7 @@ body {
 
 /* Smooth transitions for panel visibility */
 .panel-transition {
-  transition: width 200ms ease, opacity 150ms ease;
+  transition:
+    width 200ms ease,
+    opacity 150ms ease;
 }

@@ -1,4 +1,4 @@
-import crypto from "crypto";
+import crypto from "node:crypto";
 import type Database from "better-sqlite3";
 import type { AgentType, SessionInfo, SessionStatus } from "../../shared/agent-types.js";
 
@@ -37,10 +37,14 @@ interface CreateSessionParams {
 
 export function createSession(db: Database.Database, params: CreateSessionParams): SessionInfo {
   const id = crypto.randomUUID();
-  db.prepare(
-    "INSERT INTO sessions (id, repo_path, worktree_path, agent_type, name) VALUES (?, ?, ?, ?, ?)",
-  ).run(id, params.repoPath, params.worktreePath, params.agentType, params.name);
-  return getSession(db, id)!;
+  db.prepare("INSERT INTO sessions (id, repo_path, worktree_path, agent_type, name) VALUES (?, ?, ?, ?, ?)").run(
+    id,
+    params.repoPath,
+    params.worktreePath,
+    params.agentType,
+    params.name,
+  );
+  return getSession(db, id) as SessionInfo;
 }
 
 export function getSession(db: Database.Database, sessionId: string): SessionInfo | null {
@@ -55,7 +59,9 @@ export function listSessions(db: Database.Database, repoPath?: string): SessionI
       .all(repoPath) as SessionRow[];
     return rows.map(rowToSession);
   }
-  const rows = db.prepare("SELECT * FROM sessions WHERE status != 'archived' ORDER BY last_active_at DESC").all() as SessionRow[];
+  const rows = db
+    .prepare("SELECT * FROM sessions WHERE status != 'archived' ORDER BY last_active_at DESC")
+    .all() as SessionRow[];
   return rows.map(rowToSession);
 }
 
@@ -82,7 +88,9 @@ export function listArchivedSessions(db: Database.Database, repoPath?: string): 
       .all(repoPath) as SessionRow[];
     return rows.map(rowToSession);
   }
-  const rows = db.prepare("SELECT * FROM sessions WHERE status = 'archived' ORDER BY last_active_at DESC").all() as SessionRow[];
+  const rows = db
+    .prepare("SELECT * FROM sessions WHERE status = 'archived' ORDER BY last_active_at DESC")
+    .all() as SessionRow[];
   return rows.map(rowToSession);
 }
 

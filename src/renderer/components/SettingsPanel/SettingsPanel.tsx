@@ -1,4 +1,4 @@
-import { useEffect, useCallback } from "react";
+import { useCallback, useEffect } from "react";
 import { useThemeStore } from "../../stores/themeStore";
 import { themes } from "../../themes";
 import { ThemeSwatch } from "./ThemeSwatch";
@@ -28,10 +28,7 @@ export function SettingsPanel() {
   if (!settingsOpen) return null;
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
-      onClick={closeSettings}
-    >
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={closeSettings}>
       <div
         className="w-full max-w-[480px] rounded-xl bg-elevated p-6 shadow-xl"
         onClick={(event) => event.stopPropagation()}
@@ -47,12 +44,7 @@ export function SettingsPanel() {
           >
             <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
               <title>Close</title>
-              <path
-                d="M4 4L12 12M12 4L4 12"
-                stroke="currentColor"
-                strokeWidth="1.5"
-                strokeLinecap="round"
-              />
+              <path d="M4 4L12 12M12 4L4 12" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
             </svg>
           </button>
         </div>

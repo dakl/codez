@@ -1,12 +1,12 @@
-import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { EventEmitter } from "node:events";
-import Database from "better-sqlite3";
+import type { AgentEvent } from "@shared/agent-types";
+import type Database from "better-sqlite3";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createDatabase } from "../db/connection";
+import { listMessages } from "../db/messages";
 import { createRepo } from "../db/repos";
 import { getSession } from "../db/sessions";
-import { listMessages } from "../db/messages";
 import { SessionLifecycle } from "./session-lifecycle";
-import type { AgentEvent } from "@shared/agent-types";
 
 // Simulate a child process with controllable stdout, stderr, stdin and exit
 function createMockProcess() {
@@ -58,7 +58,7 @@ describe("SessionLifecycle", () => {
 
     const dbSession = getSession(db, session.id);
     expect(dbSession).not.toBeNull();
-    expect(dbSession!.status).toBe("running");
+    expect(dbSession?.status).toBe("running");
   });
 
   it("spawns the adapter process with correct args", () => {
@@ -130,7 +130,7 @@ describe("SessionLifecycle", () => {
     );
 
     const dbSession = getSession(db, session.id);
-    expect(dbSession!.agentSessionId).toBe("agent-sess-1");
+    expect(dbSession?.agentSessionId).toBe("agent-sess-1");
   });
 
   it("sets status to waiting_for_input on process exit code 0", () => {
@@ -149,7 +149,7 @@ describe("SessionLifecycle", () => {
     mockProcess.emit("close", 0);
 
     const dbSession = getSession(db, session.id);
-    expect(dbSession!.status).toBe("waiting_for_input");
+    expect(dbSession?.status).toBe("waiting_for_input");
   });
 
   it("sets status to error on process exit code non-zero", () => {
@@ -168,7 +168,7 @@ describe("SessionLifecycle", () => {
     mockProcess.emit("close", 1);
 
     const dbSession = getSession(db, session.id);
-    expect(dbSession!.status).toBe("error");
+    expect(dbSession?.status).toBe("error");
   });
 
   it("stores assistant text as a message in the database", () => {
@@ -259,7 +259,7 @@ describe("SessionLifecycle", () => {
       },
       session_id: "abc",
     });
-    mockProcess.stdout.emit("data", assistantMessage + "\n");
+    mockProcess.stdout.emit("data", `${assistantMessage}\n`);
 
     const messages = listMessages(db, session.id);
     expect(messages.length).toBe(1);
@@ -281,36 +281,51 @@ describe("SessionLifecycle", () => {
     });
 
     // 1) Assistant message with tool_use
-    mockProcess.stdout.emit("data", JSON.stringify({
-      type: "assistant",
-      message: {
-        id: "msg_01", type: "message", role: "assistant",
-        content: [{ type: "tool_use", id: "toolu_01", name: "Read", input: { file_path: "package.json" } }],
-        model: "claude-sonnet-4-6", stop_reason: "tool_use",
-      },
-      session_id: "abc",
-    }) + "\n");
+    mockProcess.stdout.emit(
+      "data",
+      `${JSON.stringify({
+        type: "assistant",
+        message: {
+          id: "msg_01",
+          type: "message",
+          role: "assistant",
+          content: [{ type: "tool_use", id: "toolu_01", name: "Read", input: { file_path: "package.json" } }],
+          model: "claude-sonnet-4-6",
+          stop_reason: "tool_use",
+        },
+        session_id: "abc",
+      })}\n`,
+    );
 
     // 2) User tool_result
-    mockProcess.stdout.emit("data", JSON.stringify({
-      type: "user",
-      message: {
-        role: "user",
-        content: [{ type: "tool_result", tool_use_id: "toolu_01", content: '{"name":"codez"}' }],
-      },
-      session_id: "abc",
-    }) + "\n");
+    mockProcess.stdout.emit(
+      "data",
+      `${JSON.stringify({
+        type: "user",
+        message: {
+          role: "user",
+          content: [{ type: "tool_result", tool_use_id: "toolu_01", content: '{"name":"codez"}' }],
+        },
+        session_id: "abc",
+      })}\n`,
+    );
 
     // 3) Final assistant text
-    mockProcess.stdout.emit("data", JSON.stringify({
-      type: "assistant",
-      message: {
-        id: "msg_02", type: "message", role: "assistant",
-        content: [{ type: "text", text: "The project is called codez." }],
-        model: "claude-sonnet-4-6", stop_reason: "end_turn",
-      },
-      session_id: "abc",
-    }) + "\n");
+    mockProcess.stdout.emit(
+      "data",
+      `${JSON.stringify({
+        type: "assistant",
+        message: {
+          id: "msg_02",
+          type: "message",
+          role: "assistant",
+          content: [{ type: "text", text: "The project is called codez." }],
+          model: "claude-sonnet-4-6",
+          stop_reason: "end_turn",
+        },
+        session_id: "abc",
+      })}\n`,
+    );
 
     const messages = listMessages(db, session.id);
     expect(messages.length).toBe(3);
@@ -360,7 +375,7 @@ describe("SessionLifecycle", () => {
     expect(args).toContain("Continue please");
 
     const dbSession = getSession(db, session.id);
-    expect(dbSession!.status).toBe("running");
+    expect(dbSession?.status).toBe("running");
   });
 
   it("emits permission_request event when control_request arrives on stdout", () => {
@@ -379,11 +394,14 @@ describe("SessionLifecycle", () => {
       prompt: "Hello",
     });
 
-    mockProcess.stdout.emit("data", JSON.stringify({
-      type: "control_request",
-      request_id: "req_1_abc",
-      request: { subtype: "can_use_tool", tool_name: "Bash", input: { command: "ls" } },
-    }) + "\n");
+    mockProcess.stdout.emit(
+      "data",
+      `${JSON.stringify({
+        type: "control_request",
+        request_id: "req_1_abc",
+        request: { subtype: "can_use_tool", tool_name: "Bash", input: { command: "ls" } },
+      })}\n`,
+    );
 
     const permEvents = events.filter((e) => e.type === "permission_request");
     expect(permEvents.length).toBe(1);

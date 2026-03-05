@@ -38,8 +38,7 @@ const api = {
   createSession: (repoPath: string, agentType: string, name?: string) =>
     ipcRenderer.invoke(CH.SESSIONS_CREATE, repoPath, agentType, name),
   resumeSession: (sessionId: string) => ipcRenderer.invoke(CH.SESSIONS_RESUME, sessionId),
-  sendMessage: (sessionId: string, message: string) =>
-    ipcRenderer.invoke(CH.SESSIONS_SEND_MESSAGE, sessionId, message),
+  sendMessage: (sessionId: string, message: string) => ipcRenderer.invoke(CH.SESSIONS_SEND_MESSAGE, sessionId, message),
   stopSession: (sessionId: string) => ipcRenderer.invoke(CH.SESSIONS_STOP, sessionId),
   deleteSession: (sessionId: string) => ipcRenderer.invoke(CH.SESSIONS_DELETE, sessionId),
   archiveSession: (sessionId: string) => ipcRenderer.invoke(CH.SESSIONS_ARCHIVE, sessionId),
@@ -47,8 +46,12 @@ const api = {
   listSessions: (repoPath?: string) => ipcRenderer.invoke(CH.SESSIONS_LIST, repoPath),
   listArchivedSessions: (repoPath?: string) => ipcRenderer.invoke(CH.SESSIONS_LIST_ARCHIVED, repoPath),
   getSessionMessages: (sessionId: string) => ipcRenderer.invoke(CH.SESSIONS_GET_MESSAGES, sessionId),
-  respondPermission: (sessionId: string, requestId: string, approved: boolean, updatedInput?: Record<string, unknown>) =>
-    ipcRenderer.invoke(CH.SESSIONS_RESPOND_PERMISSION, sessionId, requestId, approved, updatedInput),
+  respondPermission: (
+    sessionId: string,
+    requestId: string,
+    approved: boolean,
+    updatedInput?: Record<string, unknown>,
+  ) => ipcRenderer.invoke(CH.SESSIONS_RESPOND_PERMISSION, sessionId, requestId, approved, updatedInput),
 
   // Repos
   addRepo: (repoPath: string) => ipcRenderer.invoke(CH.REPOS_ADD, repoPath),
@@ -66,8 +69,7 @@ const api = {
 
   // Diffs
   getSessionDiffs: (sessionId: string) => ipcRenderer.invoke(CH.DIFFS_GET_SESSION, sessionId),
-  getFileDiff: (sessionId: string, filePath: string) =>
-    ipcRenderer.invoke(CH.DIFFS_GET_FILE, sessionId, filePath),
+  getFileDiff: (sessionId: string, filePath: string) => ipcRenderer.invoke(CH.DIFFS_GET_FILE, sessionId, filePath),
 
   // Settings
   getShortcutOverrides: () => ipcRenderer.invoke(CH.SETTINGS_GET_SHORTCUTS),

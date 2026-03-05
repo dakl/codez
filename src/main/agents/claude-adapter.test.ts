@@ -1,8 +1,7 @@
-import { describe, it, expect, beforeEach } from "vitest";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
+import { beforeEach, describe, expect, it } from "vitest";
 import { ClaudeAdapter } from "./claude-adapter";
-import type { AgentEvent } from "@shared/agent-types";
 import { StreamParser } from "./stream-parser";
 
 const fixturesDir = join(__dirname, "../../__fixtures__");
@@ -81,7 +80,6 @@ describe("ClaudeAdapter", () => {
       const args = adapter.buildStartArgs("Hello");
       expect(args).not.toContain("--permission-mode");
     });
-
   });
 
   describe("buildResumeArgs", () => {
@@ -97,9 +95,7 @@ describe("ClaudeAdapter", () => {
     });
 
     it("throws if no agent session id is set", () => {
-      expect(() => adapter.buildResumeArgs("Continue")).toThrow(
-        "Cannot resume without an agent session ID",
-      );
+      expect(() => adapter.buildResumeArgs("Continue")).toThrow("Cannot resume without an agent session ID");
     });
 
     it("does not include --session-id flag", () => {
@@ -121,7 +117,6 @@ describe("ClaudeAdapter", () => {
       expect(args[toolsIndex + 1]).toBe("Edit");
       expect(args[toolsIndex + 2]).toBe("Read");
     });
-
   });
 
   describe("parseLine", () => {
@@ -134,9 +129,9 @@ describe("ClaudeAdapter", () => {
         mcp_servers: [],
       });
       expect(event).not.toBeNull();
-      expect(event!.type).toBe("session_start");
-      expect(event!.data.agentSessionId).toBe("abc-123");
-      expect(event!.data.tools).toEqual([]);
+      expect(event?.type).toBe("session_start");
+      expect(event?.data.agentSessionId).toBe("abc-123");
+      expect(event?.data.tools).toEqual([]);
     });
 
     it("updates internal agent session id on system init", () => {
@@ -161,8 +156,8 @@ describe("ClaudeAdapter", () => {
         session_id: "abc-123",
       });
       expect(event).not.toBeNull();
-      expect(event!.type).toBe("text_delta");
-      expect(event!.data.text).toBe("Hello");
+      expect(event?.type).toBe("text_delta");
+      expect(event?.data.text).toBe("Hello");
     });
 
     it("maps tool_use content_block_start to tool_use_start", () => {
@@ -176,9 +171,9 @@ describe("ClaudeAdapter", () => {
         session_id: "abc-123",
       });
       expect(event).not.toBeNull();
-      expect(event!.type).toBe("tool_use_start");
-      expect(event!.data.toolId).toBe("toolu_01");
-      expect(event!.data.toolName).toBe("Read");
+      expect(event?.type).toBe("tool_use_start");
+      expect(event?.data.toolId).toBe("toolu_01");
+      expect(event?.data.toolName).toBe("Read");
     });
 
     it("maps input_json_delta to tool_use_delta", () => {
@@ -192,8 +187,8 @@ describe("ClaudeAdapter", () => {
         session_id: "abc-123",
       });
       expect(event).not.toBeNull();
-      expect(event!.type).toBe("tool_use_delta");
-      expect(event!.data.partialJson).toBe('{"file_path":');
+      expect(event?.type).toBe("tool_use_delta");
+      expect(event?.data.partialJson).toBe('{"file_path":');
     });
 
     it("maps result message to session_end", () => {
@@ -206,10 +201,10 @@ describe("ClaudeAdapter", () => {
         usage: { input_tokens: 10, output_tokens: 5 },
       });
       expect(event).not.toBeNull();
-      expect(event!.type).toBe("session_end");
-      expect(event!.data.result).toBe("Done.");
-      expect(event!.data.isError).toBe(false);
-      expect(event!.data.totalCostUsd).toBe(0.001);
+      expect(event?.type).toBe("session_end");
+      expect(event?.data.result).toBe("Done.");
+      expect(event?.data.isError).toBe(false);
+      expect(event?.data.totalCostUsd).toBe(0.001);
     });
 
     it("maps error result to error event", () => {
@@ -222,8 +217,8 @@ describe("ClaudeAdapter", () => {
         usage: { input_tokens: 0, output_tokens: 0 },
       });
       expect(event).not.toBeNull();
-      expect(event!.type).toBe("error");
-      expect(event!.data.message).toBe("Something went wrong");
+      expect(event?.type).toBe("error");
+      expect(event?.data.message).toBe("Something went wrong");
     });
 
     it("maps assistant message to message_complete", () => {
@@ -240,9 +235,9 @@ describe("ClaudeAdapter", () => {
         session_id: "abc-123",
       });
       expect(event).not.toBeNull();
-      expect(event!.type).toBe("message_complete");
-      expect(event!.data.content).toEqual([{ type: "text", text: "Four." }]);
-      expect(event!.data.stopReason).toBe("end_turn");
+      expect(event?.type).toBe("message_complete");
+      expect(event?.data.content).toEqual([{ type: "text", text: "Four." }]);
+      expect(event?.data.stopReason).toBe("end_turn");
     });
 
     it("maps thinking content_block_start to thinking_delta", () => {
@@ -256,8 +251,8 @@ describe("ClaudeAdapter", () => {
         session_id: "abc-123",
       });
       expect(event).not.toBeNull();
-      expect(event!.type).toBe("thinking_delta");
-      expect(event!.data.text).toBe("");
+      expect(event?.type).toBe("thinking_delta");
+      expect(event?.data.text).toBe("");
     });
 
     it("maps thinking_delta to thinking_delta event", () => {
@@ -271,25 +266,25 @@ describe("ClaudeAdapter", () => {
         session_id: "abc-123",
       });
       expect(event).not.toBeNull();
-      expect(event!.type).toBe("thinking_delta");
-      expect(event!.data.text).toBe("Let me consider...");
+      expect(event?.type).toBe("thinking_delta");
+      expect(event?.data.text).toBe("Let me consider...");
     });
 
     it("extracts tool_use blocks from assistant message as tool_use_start events", () => {
-      const events = adapter.parseLines([{
-        type: "assistant",
-        message: {
-          id: "msg_01",
-          type: "message",
-          role: "assistant",
-          content: [
-            { type: "tool_use", id: "toolu_01", name: "Read", input: { file_path: "/tmp/foo.ts" } },
-          ],
-          model: "claude-sonnet-4-6",
-          stop_reason: "tool_use",
+      const events = adapter.parseLines([
+        {
+          type: "assistant",
+          message: {
+            id: "msg_01",
+            type: "message",
+            role: "assistant",
+            content: [{ type: "tool_use", id: "toolu_01", name: "Read", input: { file_path: "/tmp/foo.ts" } }],
+            model: "claude-sonnet-4-6",
+            stop_reason: "tool_use",
+          },
+          session_id: "abc-123",
         },
-        session_id: "abc-123",
-      }]);
+      ]);
       const toolEvents = events.filter((e) => e.type === "tool_use_start");
       expect(toolEvents.length).toBe(1);
       expect(toolEvents[0].data.toolName).toBe("Read");
@@ -297,16 +292,16 @@ describe("ClaudeAdapter", () => {
     });
 
     it("maps user tool_result to tool_result event", () => {
-      const events = adapter.parseLines([{
-        type: "user",
-        message: {
-          role: "user",
-          content: [
-            { type: "tool_result", tool_use_id: "toolu_01", content: "file contents here" },
-          ],
+      const events = adapter.parseLines([
+        {
+          type: "user",
+          message: {
+            role: "user",
+            content: [{ type: "tool_result", tool_use_id: "toolu_01", content: "file contents here" }],
+          },
+          session_id: "abc-123",
         },
-        session_id: "abc-123",
-      }]);
+      ]);
       expect(events.length).toBe(1);
       expect(events[0].type).toBe("tool_result");
       expect(events[0].data.toolId).toBe("toolu_01");
@@ -321,8 +316,8 @@ describe("ClaudeAdapter", () => {
         session_id: "abc-123",
       });
       expect(event).not.toBeNull();
-      expect(event!.type).toBe("tool_use_summary");
-      expect(event!.data.summary).toBe("Read package.json for project configuration");
+      expect(event?.type).toBe("tool_use_summary");
+      expect(event?.data.summary).toBe("Read package.json for project configuration");
     });
 
     it("returns null for unrecognized message types", () => {
@@ -341,10 +336,10 @@ describe("ClaudeAdapter", () => {
         },
       });
       expect(event).not.toBeNull();
-      expect(event!.type).toBe("permission_request");
-      expect(event!.data.requestId).toBe("req_1_abc123");
-      expect(event!.data.toolName).toBe("Bash");
-      expect(event!.data.toolInput).toEqual({ command: "git commit -m 'fix'" });
+      expect(event?.type).toBe("permission_request");
+      expect(event?.data.requestId).toBe("req_1_abc123");
+      expect(event?.data.toolName).toBe("Bash");
+      expect(event?.data.toolInput).toEqual({ command: "git commit -m 'fix'" });
     });
 
     it("returns null for control_request with unknown subtype", () => {
@@ -403,7 +398,7 @@ describe("ClaudeAdapter", () => {
       expect(types).toContain("message_complete");
       expect(types).toContain("session_end");
 
-      const permEvent = events.find((e) => e.type === "permission_request")!;
+      const permEvent = events.find((e) => e.type === "permission_request");
       expect(permEvent.data.toolName).toBe("Bash");
       expect(permEvent.data.requestId).toBe("req_1_abc");
     });

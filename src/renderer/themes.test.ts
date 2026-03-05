@@ -1,6 +1,6 @@
-import { describe, it, expect } from "vitest";
-import { themes, THEME_CSS_KEYS } from "./themes";
 import type { ThemeId } from "@shared/types";
+import { describe, expect, it } from "vitest";
+import { THEME_CSS_KEYS, themes } from "./themes";
 
 const HEX_PATTERN = /^#[0-9A-Fa-f]{6}([0-9A-Fa-f]{2})?$/;
 

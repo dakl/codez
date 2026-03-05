@@ -1,10 +1,10 @@
 import { useEffect } from "react";
-import { useSessionStore } from "./stores/sessionStore";
-import { useThemeStore } from "./stores/themeStore";
-import { useGlobalShortcuts } from "./hooks/useGlobalShortcuts";
-import { Sidebar } from "./components/Sidebar/Sidebar";
 import { SessionView } from "./components/SessionView/SessionView";
 import { SettingsPanel } from "./components/SettingsPanel/SettingsPanel";
+import { Sidebar } from "./components/Sidebar/Sidebar";
+import { useGlobalShortcuts } from "./hooks/useGlobalShortcuts";
+import { useSessionStore } from "./stores/sessionStore";
+import { useThemeStore } from "./stores/themeStore";
 
 export function App() {
   const handleAgentEvent = useSessionStore((state) => state.handleAgentEvent);

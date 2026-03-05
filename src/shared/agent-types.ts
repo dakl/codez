@@ -1,13 +1,6 @@
 export type AgentType = "claude" | "mistral" | "gemini";
 
-export type SessionStatus =
-  | "idle"
-  | "running"
-  | "waiting_for_input"
-  | "paused"
-  | "completed"
-  | "error"
-  | "archived";
+export type SessionStatus = "idle" | "running" | "waiting_for_input" | "paused" | "completed" | "error" | "archived";
 
 export interface AgentConfig {
   type: AgentType;

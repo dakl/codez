@@ -1,4 +1,4 @@
-import crypto from "crypto";
+import crypto from "node:crypto";
 import type Database from "better-sqlite3";
 import type { AgentMessage } from "../../shared/agent-types.js";
 
@@ -42,7 +42,16 @@ export function createMessage(db: Database.Database, params: CreateMessageParams
   const id = crypto.randomUUID();
   db.prepare(
     "INSERT INTO messages (id, session_id, role, content, tool_name, tool_id, is_error, thinking) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
-  ).run(id, params.sessionId, params.role, params.content, params.toolName ?? null, params.toolId ?? null, params.isError ? 1 : 0, params.thinking ?? null);
+  ).run(
+    id,
+    params.sessionId,
+    params.role,
+    params.content,
+    params.toolName ?? null,
+    params.toolId ?? null,
+    params.isError ? 1 : 0,
+    params.thinking ?? null,
+  );
 
   const row = db.prepare("SELECT * FROM messages WHERE id = ?").get(id) as MessageRow;
   return rowToMessage(row);

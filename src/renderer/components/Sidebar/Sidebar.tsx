@@ -1,8 +1,8 @@
-import { useEffect, useState } from "react";
-import { useSessionStore } from "../../stores/sessionStore";
-import { useRepoStore } from "../../stores/repoStore";
-import { SessionListItem } from "./SessionListItem";
 import type { PermissionMode } from "@shared/types";
+import { useEffect, useState } from "react";
+import { useRepoStore } from "../../stores/repoStore";
+import { useSessionStore } from "../../stores/sessionStore";
+import { SessionListItem } from "./SessionListItem";
 
 export function Sidebar() {
   const sessions = useSessionStore((state) => state.sessions);
@@ -105,9 +105,7 @@ export function Sidebar() {
       <div className="flex-1 overflow-y-auto px-2 py-1 space-y-0.5">
         {sessions.length === 0 ? (
           <div className="flex items-center justify-center h-32">
-            <p className="text-xs text-text-muted">
-              {selectedRepoPath ? "No sessions yet" : "Select a repo to start"}
-            </p>
+            <p className="text-xs text-text-muted">{selectedRepoPath ? "No sessions yet" : "Select a repo to start"}</p>
           </div>
         ) : (
           sessions.map((session) => (
@@ -156,9 +154,7 @@ export function Sidebar() {
 
       {/* Permission mode selector */}
       <div className="px-3 py-2 border-t border-border">
-        <label className="block text-[10px] uppercase tracking-wider text-text-muted mb-1">
-          Permissions
-        </label>
+        <label className="block text-[10px] uppercase tracking-wider text-text-muted mb-1">Permissions</label>
         <select
           value={permissionMode}
           onChange={handlePermissionModeChange}

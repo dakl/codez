@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { SPINNERS, getRandomSpinner } from "./spinners";
+import { getRandomSpinner, SPINNERS } from "./spinners";
 
 describe("SPINNERS", () => {
   it("contains multiple spinner definitions", () => {

@@ -1,4 +1,4 @@
-import { describe, it, expect } from "vitest";
+import { describe, expect, it } from "vitest";
 import { StreamParser } from "./stream-parser";
 
 describe("StreamParser", () => {
@@ -35,7 +35,7 @@ describe("StreamParser", () => {
   it("handles a chunk that ends mid-line without newline", () => {
     const parser = new StreamParser();
     expect(parser.feed('{"a":1}\n{"b":')).toEqual([{ a: 1 }]);
-    expect(parser.feed('2}\n')).toEqual([{ b: 2 }]);
+    expect(parser.feed("2}\n")).toEqual([{ b: 2 }]);
   });
 
   it("handles carriage return + newline (Windows-style)", () => {

@@ -1,9 +1,9 @@
-import { describe, it, expect, beforeEach, afterEach } from "vitest";
-import Database from "better-sqlite3";
+import type Database from "better-sqlite3";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { createDatabase } from "./connection";
+import { createMessage, deleteMessagesBySession, listMessages } from "./messages";
 import { createRepo } from "./repos";
 import { createSession } from "./sessions";
-import { createMessage, listMessages, deleteMessagesBySession } from "./messages";
 
 let db: Database.Database;
 let sessionId: string;

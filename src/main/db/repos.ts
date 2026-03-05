@@ -18,7 +18,7 @@ function rowToRepo(row: RepoRow): RepoInfo {
 export function createRepo(db: Database.Database, repoPath: string, name: string): RepoInfo {
   const stmt = db.prepare("INSERT INTO repos (path, name) VALUES (?, ?)");
   stmt.run(repoPath, name);
-  return getRepo(db, repoPath)!;
+  return getRepo(db, repoPath) as RepoInfo;
 }
 
 export function getRepo(db: Database.Database, repoPath: string): RepoInfo | null {

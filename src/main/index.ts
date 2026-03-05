@@ -1,8 +1,8 @@
+import path from "node:path";
 import { app, BrowserWindow } from "electron";
-import path from "path";
 import { createDatabase } from "./db/connection.js";
-import { getDbPath, getSettingsPath } from "./paths.js";
 import { registerIpcHandlers } from "./ipc-handlers.js";
+import { getDbPath, getSettingsPath } from "./paths.js";
 
 let mainWindow: BrowserWindow | null = null;
 

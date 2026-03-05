@@ -1,5 +1,5 @@
-import { create } from "zustand";
 import type { ThemeId } from "@shared/types";
+import { create } from "zustand";
 import { DEFAULT_THEME_ID, getThemeById, type ThemeDefinition } from "../themes";
 
 export function applyThemeToElement(theme: ThemeDefinition, element: HTMLElement): void {

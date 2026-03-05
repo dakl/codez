@@ -31,7 +31,9 @@ export function ThinkingIndicator({ text }: ThinkingIndicatorProps) {
           <span className="font-mono">{spinner.frames[frameIndex]}</span>
           <span className="font-medium">Thinking…</span>
           {hasText && (
-            <span className={`transition-transform duration-150 text-[10px] ml-1 ${isExpanded ? "rotate-90" : ""}`}>▶</span>
+            <span className={`transition-transform duration-150 text-[10px] ml-1 ${isExpanded ? "rotate-90" : ""}`}>
+              ▶
+            </span>
           )}
         </button>
         {hasText && isExpanded && (

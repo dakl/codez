@@ -1,5 +1,5 @@
+import type { AgentEvent, AgentMessage, PermissionRequestData, SessionInfo, SessionStatus } from "@shared/agent-types";
 import { create } from "zustand";
-import type { SessionInfo, AgentMessage, AgentEvent, SessionStatus, PermissionRequestData } from "@shared/agent-types";
 
 interface SessionState {
   sessions: SessionInfo[];
@@ -90,9 +90,7 @@ export const useSessionStore = create<SessionState>((set, get) => ({
       const newStreamingThinking = new Map(state.streamingThinking);
       newStreamingThinking.delete(sessionId);
       return {
-        sessions: state.sessions.map((s) =>
-          s.id === sessionId ? { ...s, status: "waiting_for_input" as const } : s,
-        ),
+        sessions: state.sessions.map((s) => (s.id === sessionId ? { ...s, status: "waiting_for_input" as const } : s)),
         streamingText: newStreamingText,
         streamingThinking: newStreamingThinking,
       };
@@ -152,7 +150,12 @@ export const useSessionStore = create<SessionState>((set, get) => ({
       return { pendingPermissions: newPending };
     });
 
-    await window.electronAPI.respondPermission(sessionId, pending.requestId, approved, approved ? pending.toolInput : undefined);
+    await window.electronAPI.respondPermission(
+      sessionId,
+      pending.requestId,
+      approved,
+      approved ? pending.toolInput : undefined,
+    );
   },
 
   handleAgentEvent: (event) => {
@@ -227,7 +230,12 @@ export const useSessionStore = create<SessionState>((set, get) => ({
         newStreamingThinking.delete(event.sessionId);
         const newPending = new Map(state.pendingPermissions);
         newPending.delete(event.sessionId);
-        return { messages: newMessages, streamingText: newStreamingText, streamingThinking: newStreamingThinking, pendingPermissions: newPending };
+        return {
+          messages: newMessages,
+          streamingText: newStreamingText,
+          streamingThinking: newStreamingThinking,
+          pendingPermissions: newPending,
+        };
       });
     }
   },

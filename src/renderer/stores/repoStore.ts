@@ -1,5 +1,5 @@
-import { create } from "zustand";
 import type { RepoInfo } from "@shared/types";
+import { create } from "zustand";
 
 interface RepoState {
   repos: RepoInfo[];

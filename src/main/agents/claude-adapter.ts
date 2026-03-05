@@ -24,15 +24,7 @@ export class ClaudeAdapter {
   }
 
   buildStartArgs(prompt: string): string[] {
-    const args = [
-      "-p",
-      prompt,
-      "--output-format",
-      "stream-json",
-      "--verbose",
-      "--session-id",
-      this.sessionId,
-    ];
+    const args = ["-p", prompt, "--output-format", "stream-json", "--verbose", "--session-id", this.sessionId];
     this.appendPermissionArgs(args);
     return args;
   }
@@ -207,20 +199,24 @@ export class ClaudeAdapter {
     // Emit tool_use_start for each tool_use block
     for (const block of content) {
       if (block.type === "tool_use") {
-        events.push(this.makeEvent("tool_use_start", {
-          toolId: block.id,
-          toolName: block.name,
-          toolInput: block.input,
-        }));
+        events.push(
+          this.makeEvent("tool_use_start", {
+            toolId: block.id,
+            toolName: block.name,
+            toolInput: block.input,
+          }),
+        );
       }
     }
 
     // Always emit message_complete with full content
-    events.push(this.makeEvent("message_complete", {
-      content: message.content,
-      stopReason: message.stop_reason,
-      model: message.model,
-    }));
+    events.push(
+      this.makeEvent("message_complete", {
+        content: message.content,
+        stopReason: message.stop_reason,
+        model: message.model,
+      }),
+    );
 
     return events;
   }
@@ -235,10 +231,12 @@ export class ClaudeAdapter {
     const events: AgentEvent[] = [];
     for (const block of content) {
       if (block.type === "tool_result") {
-        events.push(this.makeEvent("tool_result", {
-          toolId: block.tool_use_id,
-          content: block.content,
-        }));
+        events.push(
+          this.makeEvent("tool_result", {
+            toolId: block.tool_use_id,
+            content: block.content,
+          }),
+        );
       }
     }
     return events;

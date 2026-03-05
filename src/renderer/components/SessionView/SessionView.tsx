@@ -1,10 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useSessionStore } from "../../stores/sessionStore";
+import { PermissionDialog } from "../PermissionDialog";
 import { MessageBubble } from "./MessageBubble";
 import { MessageInput } from "./MessageInput";
 import { StreamingIndicator } from "./StreamingIndicator";
 import { ThinkingIndicator } from "./ThinkingIndicator";
-import { PermissionDialog } from "../PermissionDialog";
 
 export function SessionView() {
   const activeSessionId = useSessionStore((state) => state.activeSessionId);
@@ -23,9 +23,9 @@ export function SessionView() {
   const escTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const session = sessions.find((s) => s.id === activeSessionId);
-  const sessionMessages = activeSessionId ? messages.get(activeSessionId) ?? [] : [];
-  const currentStreamingText = activeSessionId ? streamingText.get(activeSessionId) ?? "" : "";
-  const currentThinkingText = activeSessionId ? streamingThinking.get(activeSessionId) ?? "" : "";
+  const sessionMessages = activeSessionId ? (messages.get(activeSessionId) ?? []) : [];
+  const currentStreamingText = activeSessionId ? (streamingText.get(activeSessionId) ?? "") : "";
+  const currentThinkingText = activeSessionId ? (streamingThinking.get(activeSessionId) ?? "") : "";
 
   const isRunning = session?.status === "running";
   const pendingPermission = activeSessionId ? pendingPermissions.get(activeSessionId) : undefined;
@@ -71,7 +71,7 @@ export function SessionView() {
     if (isAtBottom.current) {
       messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
     }
-  }, [sessionMessages.length, currentStreamingText, currentThinkingText]);
+  }, []);
 
   if (!activeSessionId || !session) {
     return (
@@ -117,10 +117,7 @@ export function SessionView() {
       )}
 
       {/* Input */}
-      <MessageInput
-        onSend={(message) => sendMessage(activeSessionId, message)}
-        disabled={isRunning}
-      />
+      <MessageInput onSend={(message) => sendMessage(activeSessionId, message)} disabled={isRunning} />
 
       {pendingPermission && (
         <PermissionDialog
@@ -143,7 +140,5 @@ function StatusBadge({ status }: { status: string }) {
     paused: "bg-text-muted",
   };
 
-  return (
-    <span className={`ml-2 inline-block w-2 h-2 rounded-full ${colorMap[status] ?? "bg-text-muted"}`} />
-  );
+  return <span className={`ml-2 inline-block w-2 h-2 rounded-full ${colorMap[status] ?? "bg-text-muted"}`} />;
 }

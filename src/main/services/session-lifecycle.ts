@@ -1,12 +1,12 @@
+import type { ChildProcess } from "node:child_process";
 import { EventEmitter } from "node:events";
 import type Database from "better-sqlite3";
-import type { ChildProcess } from "node:child_process";
-import { createSession, getSession, updateSessionStatus, updateAgentSessionId } from "../db/sessions.js";
-import { createMessage } from "../db/messages.js";
-import { createAdapter } from "../agents/agent-registry.js";
-import { StreamParser } from "../agents/stream-parser.js";
-import type { ClaudeAdapter } from "../agents/claude-adapter.js";
 import type { AgentEvent, AgentType, SessionInfo } from "../../shared/agent-types.js";
+import { createAdapter } from "../agents/agent-registry.js";
+import type { ClaudeAdapter } from "../agents/claude-adapter.js";
+import { StreamParser } from "../agents/stream-parser.js";
+import { createMessage } from "../db/messages.js";
+import { createSession, getSession, updateAgentSessionId, updateSessionStatus } from "../db/sessions.js";
 
 type SpawnFn = (binary: string, args: string[], options: { cwd: string }) => ChildProcess;
 
@@ -115,7 +115,7 @@ export class SessionLifecycle extends EventEmitter {
       allowedTools: this.getAllowedTools(),
       permissionMode: this.getPermissionMode(),
     });
-    adapter.setAgentSessionId(session.agentSessionId!);
+    adapter.setAgentSessionId(session.agentSessionId ?? "");
 
     this.activeSessions.set(session.id, {
       adapter,
@@ -173,7 +173,7 @@ export class SessionLifecycle extends EventEmitter {
           },
         };
 
-    active.process.stdin.write(JSON.stringify(controlResponse) + "\n");
+    active.process.stdin.write(`${JSON.stringify(controlResponse)}\n`);
   }
 
   stopSession(sessionId: string): void {

@@ -1,9 +1,9 @@
-import { describe, it, expect, beforeEach, afterEach } from "vitest";
-import fs from "fs";
-import path from "path";
-import os from "os";
+import fs from "node:fs";
+import os from "node:os";
+import path from "node:path";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
-import { readSettings, writeSettings, getShortcutOverrides, saveShortcutOverrides } from "./settings";
+import { getShortcutOverrides, readSettings, saveShortcutOverrides, writeSettings } from "./settings";
 
 let tempDir: string;
 let settingsPath: string;

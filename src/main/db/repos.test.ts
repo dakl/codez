@@ -1,7 +1,7 @@
-import { describe, it, expect, beforeEach, afterEach } from "vitest";
-import Database from "better-sqlite3";
+import type Database from "better-sqlite3";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { createDatabase } from "./connection";
-import { createRepo, getRepo, listRepos, deleteRepo, updateLastUsed } from "./repos";
+import { createRepo, deleteRepo, getRepo, listRepos, updateLastUsed } from "./repos";
 
 let db: Database.Database;
 
@@ -32,7 +32,7 @@ describe("getRepo", () => {
     createRepo(db, "/Users/dan/project", "project");
     const repo = getRepo(db, "/Users/dan/project");
     expect(repo).not.toBeNull();
-    expect(repo!.name).toBe("project");
+    expect(repo?.name).toBe("project");
   });
 
   it("returns null for non-existent path", () => {
@@ -73,10 +73,10 @@ describe("deleteRepo", () => {
 describe("updateLastUsed", () => {
   it("updates the last_used timestamp", () => {
     createRepo(db, "/Users/dan/project", "project");
-    const before = getRepo(db, "/Users/dan/project")!.lastUsed;
+    const before = getRepo(db, "/Users/dan/project")?.lastUsed;
     // SQLite datetime precision is seconds, so the timestamps may be equal
     updateLastUsed(db, "/Users/dan/project");
-    const after = getRepo(db, "/Users/dan/project")!.lastUsed;
+    const after = getRepo(db, "/Users/dan/project")?.lastUsed;
     expect(after).toBeDefined();
     expect(after >= before).toBe(true);
   });

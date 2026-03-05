@@ -1,6 +1,6 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import { DEFAULT_THEME_ID, getThemeById } from "../themes";
 import { applyThemeToElement } from "./themeStore";
-import { themes, DEFAULT_THEME_ID, getThemeById } from "../themes";
 
 describe("applyThemeToElement", () => {
   it("sets all CSS custom properties on the given element", () => {

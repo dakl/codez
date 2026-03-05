@@ -1,13 +1,20 @@
-import { ipcMain, dialog, BrowserWindow } from "electron";
 import { spawn } from "node:child_process";
 import type Database from "better-sqlite3";
-import { IPC } from "../shared/constants.js";
-import { createRepo, listRepos, deleteRepo } from "./db/repos.js";
-import { createSession, listSessions, deleteSession, archiveSession, restoreSession, listArchivedSessions } from "./db/sessions.js";
-import { listMessages, deleteMessagesBySession, createMessage } from "./db/messages.js";
-import { SessionLifecycle } from "./services/session-lifecycle.js";
-import { readSettings, writeSettings, getShortcutOverrides, saveShortcutOverrides } from "./settings.js";
+import { type BrowserWindow, dialog, ipcMain } from "electron";
 import type { AgentType } from "../shared/agent-types.js";
+import { IPC } from "../shared/constants.js";
+import { createMessage, deleteMessagesBySession, listMessages } from "./db/messages.js";
+import { createRepo, deleteRepo, listRepos } from "./db/repos.js";
+import {
+  archiveSession,
+  createSession,
+  deleteSession,
+  listArchivedSessions,
+  listSessions,
+  restoreSession,
+} from "./db/sessions.js";
+import { SessionLifecycle } from "./services/session-lifecycle.js";
+import { getShortcutOverrides, readSettings, saveShortcutOverrides, writeSettings } from "./settings.js";
 
 interface RegisterHandlersOptions {
   db: Database.Database;

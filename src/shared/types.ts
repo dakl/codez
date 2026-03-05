@@ -1,4 +1,12 @@
-import type { AgentConfig, AgentEvent, AgentMessage, AgentType, ChangedFile, SessionInfo, SessionStatus } from "./agent-types";
+import type {
+  AgentConfig,
+  AgentEvent,
+  AgentMessage,
+  AgentType,
+  ChangedFile,
+  SessionInfo,
+  SessionStatus,
+} from "./agent-types";
 
 export interface RepoInfo {
   path: string;

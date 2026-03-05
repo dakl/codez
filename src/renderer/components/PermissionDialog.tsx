@@ -1,5 +1,5 @@
-import { useEffect, useRef, useCallback } from "react";
 import type { PermissionRequestData } from "@shared/agent-types";
+import { useCallback, useEffect, useRef } from "react";
 
 interface PermissionDialogProps {
   permission: PermissionRequestData;

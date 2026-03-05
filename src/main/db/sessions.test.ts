@@ -1,17 +1,17 @@
-import { describe, it, expect, beforeEach, afterEach } from "vitest";
-import Database from "better-sqlite3";
+import type Database from "better-sqlite3";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { createDatabase } from "./connection";
 import { createRepo } from "./repos";
 import {
-  createSession,
-  getSession,
-  listSessions,
-  updateSessionStatus,
-  updateAgentSessionId,
-  deleteSession,
   archiveSession,
-  restoreSession,
+  createSession,
+  deleteSession,
+  getSession,
   listArchivedSessions,
+  listSessions,
+  restoreSession,
+  updateAgentSessionId,
+  updateSessionStatus,
 } from "./sessions";
 
 let db: Database.Database;
@@ -52,7 +52,7 @@ describe("getSession", () => {
     });
     const session = getSession(db, created.id);
     expect(session).not.toBeNull();
-    expect(session!.name).toBe("test");
+    expect(session?.name).toBe("test");
   });
 
   it("returns null for non-existent id", () => {
@@ -91,8 +91,8 @@ describe("updateSessionStatus", () => {
       name: "test",
     });
     updateSessionStatus(db, session.id, "running");
-    const updated = getSession(db, session.id)!;
-    expect(updated.status).toBe("running");
+    const updated = getSession(db, session.id);
+    expect(updated?.status).toBe("running");
   });
 });
 
@@ -105,8 +105,8 @@ describe("updateAgentSessionId", () => {
       name: "test",
     });
     updateAgentSessionId(db, session.id, "claude-session-xyz");
-    const updated = getSession(db, session.id)!;
-    expect(updated.agentSessionId).toBe("claude-session-xyz");
+    const updated = getSession(db, session.id);
+    expect(updated?.agentSessionId).toBe("claude-session-xyz");
   });
 });
 
@@ -119,8 +119,8 @@ describe("archiveSession", () => {
       name: "test",
     });
     archiveSession(db, session.id);
-    const updated = getSession(db, session.id)!;
-    expect(updated.status).toBe("archived");
+    const updated = getSession(db, session.id);
+    expect(updated?.status).toBe("archived");
   });
 
   it("hides session from listSessions", () => {
@@ -146,8 +146,8 @@ describe("restoreSession", () => {
     });
     archiveSession(db, session.id);
     restoreSession(db, session.id);
-    const updated = getSession(db, session.id)!;
-    expect(updated.status).toBe("idle");
+    const updated = getSession(db, session.id);
+    expect(updated?.status).toBe("idle");
   });
 
   it("makes session visible in listSessions again", () => {
@@ -165,7 +165,7 @@ describe("restoreSession", () => {
 
 describe("listArchivedSessions", () => {
   it("returns only archived sessions", () => {
-    const session1 = createSession(db, {
+    const _session1 = createSession(db, {
       repoPath: "/Users/dan/project",
       worktreePath: "/tmp/a",
       agentType: "claude",

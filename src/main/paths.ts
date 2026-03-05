@@ -1,5 +1,5 @@
+import path from "node:path";
 import { app } from "electron";
-import path from "path";
 
 export function getDataDir(): string {
   return path.join(app.getPath("userData"));

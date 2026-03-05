@@ -1,8 +1,8 @@
+import type { AgentMessage } from "@shared/agent-types";
 import { useState } from "react";
 import ReactMarkdown from "react-markdown";
-import remarkGfm from "remark-gfm";
 import rehypeHighlight from "rehype-highlight";
-import type { AgentMessage } from "@shared/agent-types";
+import remarkGfm from "remark-gfm";
 
 interface MessageBubbleProps {
   message: AgentMessage;
@@ -54,14 +54,14 @@ function ToolUseBubble({ message }: { message: AgentMessage }) {
     if (input.file_path) {
       label = shortPath(input.file_path);
     } else if (input.command) {
-      label = input.command.length > 60 ? input.command.slice(0, 60) + "…" : input.command;
+      label = input.command.length > 60 ? `${input.command.slice(0, 60)}…` : input.command;
     } else if (input.pattern) {
       label = input.pattern;
     } else if (input.query) {
-      label = input.query.length > 60 ? input.query.slice(0, 60) + "…" : input.query;
+      label = input.query.length > 60 ? `${input.query.slice(0, 60)}…` : input.query;
     }
   } catch {
-    label = message.content.length > 60 ? message.content.slice(0, 60) + "…" : message.content;
+    label = message.content.length > 60 ? `${message.content.slice(0, 60)}…` : message.content;
   }
 
   return (
@@ -74,9 +74,7 @@ function ToolUseBubble({ message }: { message: AgentMessage }) {
 
 function ToolResultBubble({ message }: { message: AgentMessage }) {
   const [isExpanded, setIsExpanded] = useState(false);
-  const contentPreview = message.content.length > 120
-    ? message.content.slice(0, 120) + "…"
-    : message.content;
+  const contentPreview = message.content.length > 120 ? `${message.content.slice(0, 120)}…` : message.content;
 
   return (
     <div className="py-1 px-3 text-xs text-text-muted">
@@ -122,13 +120,14 @@ function ThinkingBlock({ text }: { text: string }) {
 }
 
 function transformInsightBlocks(text: string): string {
-  return text.replace(
-    /`★ Insight ─+`\n([\s\S]*?)\n`─+`/g,
-    (_match, body: string) => {
-      const quoted = body.trim().split("\n").map((line: string) => `> ${line}`).join("\n");
-      return `> **★ Insight**\n>\n${quoted}`;
-    },
-  );
+  return text.replace(/`★ Insight ─+`\n([\s\S]*?)\n`─+`/g, (_match, body: string) => {
+    const quoted = body
+      .trim()
+      .split("\n")
+      .map((line: string) => `> ${line}`)
+      .join("\n");
+    return `> **★ Insight**\n>\n${quoted}`;
+  });
 }
 
 function MarkdownContent({ content }: { content: string }) {
@@ -170,7 +169,12 @@ function MarkdownContent({ content }: { content: string }) {
             </blockquote>
           ),
           a: ({ href, children }) => (
-            <a href={href} className="underline underline-offset-2 opacity-80 hover:opacity-100" target="_blank" rel="noreferrer">
+            <a
+              href={href}
+              className="underline underline-offset-2 opacity-80 hover:opacity-100"
+              target="_blank"
+              rel="noreferrer"
+            >
               {children}
             </a>
           ),
@@ -195,5 +199,5 @@ function MarkdownContent({ content }: { content: string }) {
 function shortPath(filePath: string): string {
   const parts = filePath.split("/");
   if (parts.length <= 3) return filePath;
-  return "…/" + parts.slice(-2).join("/");
+  return `…/${parts.slice(-2).join("/")}`;
 }
