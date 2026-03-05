@@ -18,11 +18,10 @@ describe("MistralAdapter", () => {
     // streaming is now --output streaming format
     expect(args).toContain("streaming");
     // Note: vibe doesn't support --session-id for new sessions like claude does
-    expect(args).toContain("--agent");
-    expect(args).toContain("accept-edits");
-    expect(args).toContain("--enabled-tools");
-    expect(args).toContain("bash");
-    expect(args).toContain("grep");
+    // In -p mode, vibe auto-approves all tools; --agent restricts permissions
+    expect(args).not.toContain("--agent");
+    // Claude's allowedTools should NOT be passed to vibe (different tool names)
+    expect(args).not.toContain("--enabled-tools");
     // Note: --add-dir is not directly supported by vibe CLI
   });
 

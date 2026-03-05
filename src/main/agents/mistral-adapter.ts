@@ -48,39 +48,14 @@ export class MistralAdapter {
     return args;
   }
 
-  private appendPermissionArgs(args: string[]): void {
-    // Map permission modes to vibe agent names
-    if (this.permissionMode !== "default") {
-      const vibeAgentName = this.mapPermissionModeToAgent(this.permissionMode);
-      args.push("--agent", vibeAgentName);
-    }
-
-    // vibe uses --enabled-tools instead of --allowed-tools
-    if (this.allowedTools.length > 0) {
-      for (const tool of this.allowedTools) {
-        args.push("--enabled-tools", tool);
-      }
-    }
-
-    // vibe doesn't have a direct --add-dir equivalent, but --workdir can be used
-    // For now, we'll skip additional dirs or handle them differently
-    // Note: This might need adjustment based on actual vibe behavior
-  }
-
-  private mapPermissionModeToAgent(permissionMode: PermissionMode): string {
-    // Map our permission modes to vibe's built-in agent names
-    switch (permissionMode) {
-      case "acceptEdits":
-        return "accept-edits";
-      case "bypassPermissions":
-        return "auto-approve";
-      case "plan":
-        return "plan";
-      case "default":
-        return "accept-edits"; // More specific than "default"
-      default:
-        return "accept-edits";
-    }
+  private appendPermissionArgs(_args: string[]): void {
+    // In -p (programmatic) mode, vibe auto-approves all tools by default.
+    // Don't pass --agent: agents like "accept-edits" restrict tool permissions,
+    // blocking tools like web_search and bash with "Tool execution not permitted."
+    //
+    // Don't pass --enabled-tools: they come from Claude's config and use
+    // Claude-specific names (Read, Bash, Edit) that don't match vibe's tool names
+    // (read_file, bash, search_replace), which would disable all vibe tools.
   }
 
   /**
