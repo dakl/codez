@@ -1,4 +1,5 @@
 import type { SessionInfo } from "@shared/agent-types";
+import { Tooltip } from "../Tooltip";
 
 interface SessionListItemProps {
   session: SessionInfo;
@@ -46,45 +47,48 @@ export function SessionListItem({ session, isActive, onClick, onArchive, onResto
           {isArchived ? (
             <>
               {onRestore && (
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onRestore();
-                  }}
-                  className="p-0.5 rounded text-text-muted hover:text-success transition-colors"
-                  title="Restore session"
-                >
-                  <RestoreIcon />
-                </button>
+                <Tooltip label="Restore session" position="above">
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onRestore();
+                    }}
+                    className="p-0.5 rounded text-text-muted hover:text-success transition-colors"
+                  >
+                    <RestoreIcon />
+                  </button>
+                </Tooltip>
               )}
               {onDelete && (
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onDelete();
-                  }}
-                  className="p-0.5 rounded text-text-muted hover:text-error transition-colors"
-                  title="Delete permanently"
-                >
-                  <TrashIcon />
-                </button>
+                <Tooltip label="Delete permanently" position="above">
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onDelete();
+                    }}
+                    className="p-0.5 rounded text-text-muted hover:text-error transition-colors"
+                  >
+                    <TrashIcon />
+                  </button>
+                </Tooltip>
               )}
             </>
           ) : (
             onArchive && (
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onArchive();
-                }}
-                className="p-0.5 rounded text-text-muted hover:text-error transition-colors"
-                title="Archive session"
-              >
-                <ArchiveIcon />
-              </button>
+              <Tooltip label="Archive session" position="above">
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onArchive();
+                  }}
+                  className="p-0.5 rounded text-text-muted hover:text-error transition-colors"
+                >
+                  <ArchiveIcon />
+                </button>
+              </Tooltip>
             )
           )}
         </div>

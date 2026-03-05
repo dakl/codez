@@ -83,3 +83,35 @@ describe("saveShortcutOverrides", () => {
     expect(settings.shortcuts).toEqual({ toggleSidebar: "Meta+Shift+b" });
   });
 });
+
+describe("agentConfigs round-trip", () => {
+  it("persists and reads defaultPermissions for claude", () => {
+    const allowedTools = ["Edit", "Read", "Bash(git *)"];
+    writeSettings(settingsPath, {
+      agentConfigs: { claude: { defaultPermissions: allowedTools } },
+    });
+    const settings = readSettings(settingsPath);
+    expect(settings.agentConfigs?.claude?.defaultPermissions).toEqual(allowedTools);
+  });
+
+  it("persists permissionMode alongside agentConfigs", () => {
+    writeSettings(settingsPath, {
+      permissionMode: "acceptEdits",
+      agentConfigs: { claude: { defaultPermissions: ["Edit"] } },
+    });
+    const settings = readSettings(settingsPath);
+    expect(settings.permissionMode).toBe("acceptEdits");
+    expect(settings.agentConfigs?.claude?.defaultPermissions).toEqual(["Edit"]);
+  });
+
+  it("merges agentConfigs without clobbering other settings", () => {
+    writeSettings(settingsPath, { voiceEnabled: true, theme: "midnight" });
+    writeSettings(settingsPath, {
+      agentConfigs: { claude: { defaultPermissions: ["Bash(npm *)"] } },
+    });
+    const settings = readSettings(settingsPath);
+    expect(settings.voiceEnabled).toBe(true);
+    expect(settings.theme).toBe("midnight");
+    expect(settings.agentConfigs?.claude?.defaultPermissions).toEqual(["Bash(npm *)"]);
+  });
+});

@@ -1,9 +1,12 @@
 import type { PermissionRequestData } from "@shared/agent-types";
+import { deriveToolPattern } from "@shared/permission-patterns";
 import { useCallback, useEffect, useRef } from "react";
+import { Tooltip } from "./Tooltip";
 
 interface PermissionDialogProps {
   permission: PermissionRequestData;
   onApprove: () => void;
+  onAlwaysAllow: () => void;
   onDeny: () => void;
 }
 
@@ -20,7 +23,7 @@ function formatToolInput(toolName: string, toolInput: Record<string, unknown>): 
   return JSON.stringify(toolInput, null, 2);
 }
 
-export function PermissionDialog({ permission, onApprove, onDeny }: PermissionDialogProps) {
+export function PermissionDialog({ permission, onApprove, onAlwaysAllow, onDeny }: PermissionDialogProps) {
   const allowButtonRef = useRef<HTMLButtonElement>(null);
 
   const handleKeyDown = useCallback(
@@ -43,6 +46,7 @@ export function PermissionDialog({ permission, onApprove, onDeny }: PermissionDi
   }, [handleKeyDown]);
 
   const displayInput = formatToolInput(permission.toolName, permission.toolInput);
+  const derivedPattern = deriveToolPattern(permission.toolName, permission.toolInput);
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
@@ -60,23 +64,34 @@ export function PermissionDialog({ permission, onApprove, onDeny }: PermissionDi
         </pre>
 
         <div className="flex justify-end gap-2">
-          <button
-            type="button"
-            onClick={onDeny}
-            title="Deny (Esc)"
-            className="rounded-md px-3 py-1.5 text-xs font-medium text-text-muted hover:text-text-primary hover:bg-surface transition-colors cursor-pointer"
-          >
-            Deny
-          </button>
-          <button
-            ref={allowButtonRef}
-            type="button"
-            onClick={onApprove}
-            title="Allow (↵)"
-            className="rounded-md bg-accent px-3 py-1.5 text-xs font-medium text-white hover:bg-accent-hover transition-colors cursor-pointer"
-          >
-            Allow
-          </button>
+          <Tooltip label="Deny (Esc)" position="above">
+            <button
+              type="button"
+              onClick={onDeny}
+              className="rounded-md px-3 py-1.5 text-xs font-medium text-text-muted hover:text-text-primary hover:bg-surface transition-colors cursor-pointer"
+            >
+              Deny
+            </button>
+          </Tooltip>
+          <Tooltip label={`Always allow ${derivedPattern}`} position="above">
+            <button
+              type="button"
+              onClick={onAlwaysAllow}
+              className="rounded-md px-3 py-1.5 text-xs font-medium text-text-muted hover:text-text-primary border border-border-subtle hover:border-text-muted transition-colors cursor-pointer"
+            >
+              Always Allow
+            </button>
+          </Tooltip>
+          <Tooltip label="Allow (↵)" position="above">
+            <button
+              ref={allowButtonRef}
+              type="button"
+              onClick={onApprove}
+              className="rounded-md bg-accent px-3 py-1.5 text-xs font-medium text-white hover:bg-accent-hover transition-colors cursor-pointer"
+            >
+              Allow
+            </button>
+          </Tooltip>
         </div>
       </div>
     </div>

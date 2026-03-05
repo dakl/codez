@@ -6,6 +6,7 @@ interface CreateAdapterOptions {
   sessionId: string;
   worktreePath: string;
   allowedTools?: string[];
+  additionalDirs?: string[];
   permissionMode?: string;
 }
 
@@ -16,6 +17,7 @@ export function createAdapter(options: CreateAdapterOptions): ClaudeAdapter {
         sessionId: options.sessionId,
         worktreePath: options.worktreePath,
         allowedTools: options.allowedTools,
+        additionalDirs: options.additionalDirs,
         permissionMode: options.permissionMode as "default" | "acceptEdits" | "bypassPermissions" | "plan",
       });
     default:

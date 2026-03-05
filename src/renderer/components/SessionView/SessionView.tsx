@@ -16,6 +16,7 @@ export function SessionView() {
   const stopSession = useSessionStore((state) => state.stopSession);
   const pendingPermissions = useSessionStore((state) => state.pendingPermissions);
   const respondPermission = useSessionStore((state) => state.respondPermission);
+  const alwaysAllowTool = useSessionStore((state) => state.alwaysAllowTool);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const isAtBottom = useRef(true);
@@ -123,6 +124,7 @@ export function SessionView() {
         <PermissionDialog
           permission={pendingPermission}
           onApprove={() => respondPermission(activeSessionId, true)}
+          onAlwaysAllow={() => alwaysAllowTool(activeSessionId)}
           onDeny={() => respondPermission(activeSessionId, false)}
         />
       )}

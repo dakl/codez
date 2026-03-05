@@ -1,4 +1,5 @@
 import type { AgentEvent, AgentMessage, PermissionRequestData, SessionInfo, SessionStatus } from "@shared/agent-types";
+import { deriveToolPattern } from "@shared/permission-patterns";
 import { create } from "zustand";
 
 interface SessionState {
@@ -22,6 +23,7 @@ interface SessionState {
   archiveSession: (sessionId: string) => Promise<void>;
   restoreSession: (sessionId: string) => Promise<void>;
   respondPermission: (sessionId: string, approved: boolean) => Promise<void>;
+  alwaysAllowTool: (sessionId: string) => Promise<void>;
   handleAgentEvent: (event: AgentEvent) => void;
   handleStatusChange: (sessionId: string, status: SessionStatus) => void;
 }
@@ -156,6 +158,24 @@ export const useSessionStore = create<SessionState>((set, get) => ({
       approved,
       approved ? pending.toolInput : undefined,
     );
+  },
+
+  alwaysAllowTool: async (sessionId) => {
+    const pending = get().pendingPermissions.get(sessionId);
+    if (!pending) return;
+
+    // Approve this request
+    await get().respondPermission(sessionId, true);
+
+    // Persist the derived pattern to settings
+    const pattern = deriveToolPattern(pending.toolName, pending.toolInput);
+    const settings = await window.electronAPI.getSettings();
+    const existingTools = settings.agentConfigs?.claude?.defaultPermissions ?? [];
+    if (!existingTools.includes(pattern)) {
+      await window.electronAPI.saveSettings({
+        agentConfigs: { claude: { defaultPermissions: [...existingTools, pattern] } },
+      });
+    }
   },
 
   handleAgentEvent: (event) => {

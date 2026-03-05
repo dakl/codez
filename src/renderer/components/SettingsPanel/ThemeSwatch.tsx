@@ -13,7 +13,6 @@ export function ThemeSwatch({ theme, isActive, onClick }: ThemeSwatchProps) {
     <button
       type="button"
       onClick={onClick}
-      title={`${theme.name} theme`}
       className={`flex flex-col items-center gap-2 rounded-lg p-3 transition-all cursor-pointer
         ${isActive ? "ring-2 ring-accent bg-surface" : "bg-surface/50 hover:bg-surface"}`}
     >

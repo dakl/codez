@@ -26,6 +26,7 @@ export interface AppSettings {
   pushToTalkKey?: string;
   notificationSound?: boolean;
   permissionMode?: PermissionMode;
+  additionalDirs?: string[];
   agentConfigs?: Record<string, Partial<AgentConfig>>;
   theme?: ThemeId;
 }

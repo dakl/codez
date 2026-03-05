@@ -81,7 +81,6 @@ function ToolResultBubble({ message }: { message: AgentMessage }) {
       <button
         type="button"
         onClick={() => setIsExpanded(!isExpanded)}
-        title={isExpanded ? "Collapse output" : "Expand output"}
         className="flex items-center gap-1.5 hover:text-text-secondary transition-colors"
       >
         <span className={`transition-transform duration-150 text-[10px] ${isExpanded ? "rotate-90" : ""}`}>▶</span>
@@ -104,7 +103,6 @@ function ThinkingBlock({ text }: { text: string }) {
       <button
         type="button"
         onClick={() => setIsExpanded(!isExpanded)}
-        title={isExpanded ? "Collapse thinking" : "Expand thinking"}
         className="flex items-center gap-1.5 text-xs text-text-muted hover:text-text-secondary transition-colors"
       >
         <span className={`transition-transform duration-150 text-[10px] ${isExpanded ? "rotate-90" : ""}`}>▶</span>

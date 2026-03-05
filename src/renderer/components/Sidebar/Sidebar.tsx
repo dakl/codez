@@ -94,7 +94,6 @@ export function Sidebar() {
           onClick={handleNewSession}
           disabled={!selectedRepoPath}
           type="button"
-          title="Create a new session (⌘N)"
           className="w-full rounded-md bg-accent px-3 py-1.5 text-xs font-medium text-text-inverse hover:bg-accent-hover disabled:opacity-30 transition-colors [-webkit-app-region:no-drag]"
         >
           New Session ⌘N
@@ -126,7 +125,6 @@ export function Sidebar() {
           <button
             type="button"
             onClick={() => setArchiveOpen(!archiveOpen)}
-            title={archiveOpen ? "Collapse archive" : "Expand archive"}
             className="w-full flex items-center gap-2 px-3 py-2 text-xs text-text-muted hover:text-text-secondary transition-colors"
           >
             <ChevronIcon open={archiveOpen} />

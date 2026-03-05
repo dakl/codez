@@ -25,7 +25,6 @@ export function ThinkingIndicator({ text }: ThinkingIndicatorProps) {
         <button
           type="button"
           onClick={() => hasText && setIsExpanded(!isExpanded)}
-          title={hasText ? (isExpanded ? "Collapse thinking" : "Expand thinking") : undefined}
           className={`flex items-center gap-1.5 text-xs text-text-muted ${hasText ? "hover:text-text-secondary cursor-pointer" : "cursor-default"} transition-colors`}
         >
           <span className="font-mono">{spinner.frames[frameIndex]}</span>

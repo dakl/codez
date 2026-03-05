@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { Tooltip } from "../Tooltip";
 
 interface MessageInputProps {
   onSend: (message: string) => void;
@@ -58,15 +59,16 @@ export function MessageInput({ onSend, disabled = false }: MessageInputProps) {
           rows={1}
           className="flex-1 resize-none rounded-lg bg-input border border-border px-4 py-2.5 text-sm text-text-primary placeholder-text-muted focus:outline-none focus:border-accent disabled:opacity-50"
         />
-        <button
-          onClick={handleSend}
-          disabled={disabled || !text.trim()}
-          type="button"
-          title="Send message (↵)"
-          className="rounded-lg bg-accent px-4 py-2.5 text-sm font-medium text-white hover:bg-accent-hover disabled:opacity-30 disabled:hover:bg-accent transition-colors"
-        >
-          Send
-        </button>
+        <Tooltip label="Send message (↵)" position="above">
+          <button
+            onClick={handleSend}
+            disabled={disabled || !text.trim()}
+            type="button"
+            className="rounded-lg bg-accent px-4 py-2.5 text-sm font-medium text-white hover:bg-accent-hover disabled:opacity-30 disabled:hover:bg-accent transition-colors"
+          >
+            Send
+          </button>
+        </Tooltip>
       </div>
     </div>
   );

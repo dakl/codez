@@ -6,6 +6,7 @@ interface ClaudeAdapterOptions {
   sessionId: string;
   worktreePath: string;
   allowedTools?: string[];
+  additionalDirs?: string[];
   permissionMode?: PermissionMode;
 }
 
@@ -14,12 +15,14 @@ export class ClaudeAdapter {
   private worktreePath: string;
   private agentSessionId: string | null = null;
   private allowedTools: string[];
+  private additionalDirs: string[];
   private permissionMode: PermissionMode;
 
   constructor(options: ClaudeAdapterOptions) {
     this.sessionId = options.sessionId;
     this.worktreePath = options.worktreePath;
     this.allowedTools = options.allowedTools ?? [];
+    this.additionalDirs = options.additionalDirs ?? [];
     this.permissionMode = options.permissionMode ?? "default";
   }
 
@@ -44,6 +47,9 @@ export class ClaudeAdapter {
     }
     if (this.allowedTools.length > 0) {
       args.push("--allowedTools", ...this.allowedTools);
+    }
+    for (const dir of this.additionalDirs) {
+      args.push("--add-dir", dir);
     }
   }
 
@@ -231,15 +237,27 @@ export class ClaudeAdapter {
     const events: AgentEvent[] = [];
     for (const block of content) {
       if (block.type === "tool_result") {
+        const toolResultContent = block.content as string | undefined;
         events.push(
           this.makeEvent("tool_result", {
             toolId: block.tool_use_id,
-            content: block.content,
+            content: toolResultContent,
           }),
         );
+
+        // Detect directory permission denials
+        const deniedEvent = this.detectDirectoryPermissionDenied(toolResultContent);
+        if (deniedEvent) events.push(deniedEvent);
       }
     }
     return events;
+  }
+
+  private detectDirectoryPermissionDenied(content: string | undefined): AgentEvent | null {
+    if (typeof content !== "string") return null;
+    const match = content.match(/requested permissions to (?:read|write) from (.+?)(?:,|$)/);
+    if (!match) return null;
+    return this.makeEvent("directory_permission_denied", { path: match[1].trim() });
   }
 
   private parseControlRequest(line: Record<string, unknown>): AgentEvent | null {

@@ -35,6 +35,7 @@ export type AgentEventType =
   | "session_end"
   | "waiting_for_input"
   | "permission_request"
+  | "directory_permission_denied"
   | "error";
 
 export interface AgentEvent {

@@ -14,6 +14,7 @@ interface SessionLifecycleOptions {
   db: Database.Database;
   spawnFn: SpawnFn;
   getAllowedTools?: () => string[];
+  getAdditionalDirs?: () => string[];
   getPermissionMode?: () => string;
 }
 
@@ -37,6 +38,7 @@ export class SessionLifecycle extends EventEmitter {
   private db: Database.Database;
   private spawnFn: SpawnFn;
   private getAllowedTools: () => string[];
+  private getAdditionalDirs: () => string[];
   private getPermissionMode: () => string;
   private activeSessions = new Map<string, ActiveSession>();
 
@@ -45,6 +47,7 @@ export class SessionLifecycle extends EventEmitter {
     this.db = options.db;
     this.spawnFn = options.spawnFn;
     this.getAllowedTools = options.getAllowedTools ?? (() => []);
+    this.getAdditionalDirs = options.getAdditionalDirs ?? (() => []);
     this.getPermissionMode = options.getPermissionMode ?? (() => "default");
   }
 
@@ -63,6 +66,7 @@ export class SessionLifecycle extends EventEmitter {
       sessionId: session.id,
       worktreePath: params.worktreePath,
       allowedTools: this.getAllowedTools(),
+      additionalDirs: this.getAdditionalDirs(),
       permissionMode: this.getPermissionMode(),
     });
 
@@ -113,6 +117,7 @@ export class SessionLifecycle extends EventEmitter {
       sessionId: session.id,
       worktreePath: session.worktreePath,
       allowedTools: this.getAllowedTools(),
+      additionalDirs: this.getAdditionalDirs(),
       permissionMode: this.getPermissionMode(),
     });
     adapter.setAgentSessionId(session.agentSessionId ?? "");
@@ -196,6 +201,7 @@ export class SessionLifecycle extends EventEmitter {
       sessionId: session.id,
       worktreePath: session.worktreePath,
       allowedTools: this.getAllowedTools(),
+      additionalDirs: this.getAdditionalDirs(),
       permissionMode: this.getPermissionMode(),
     });
 

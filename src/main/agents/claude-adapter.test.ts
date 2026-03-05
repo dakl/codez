@@ -308,6 +308,45 @@ describe("ClaudeAdapter", () => {
       expect(events[0].data.content).toBe("file contents here");
     });
 
+    it("emits directory_permission_denied when tool_result contains permission denial", () => {
+      const events = adapter.parseLines([
+        {
+          type: "user",
+          message: {
+            role: "user",
+            content: [
+              {
+                type: "tool_result",
+                tool_use_id: "toolu_02",
+                content:
+                  "Claude requested permissions to read from /Users/daniel/dev/papershelf, but you haven't granted it yet.",
+              },
+            ],
+          },
+          session_id: "abc-123",
+        },
+      ]);
+      expect(events.length).toBe(2);
+      expect(events[0].type).toBe("tool_result");
+      expect(events[1].type).toBe("directory_permission_denied");
+      expect(events[1].data.path).toBe("/Users/daniel/dev/papershelf");
+    });
+
+    it("does not emit directory_permission_denied for normal tool results", () => {
+      const events = adapter.parseLines([
+        {
+          type: "user",
+          message: {
+            role: "user",
+            content: [{ type: "tool_result", tool_use_id: "toolu_01", content: "file contents here" }],
+          },
+          session_id: "abc-123",
+        },
+      ]);
+      expect(events.length).toBe(1);
+      expect(events[0].type).toBe("tool_result");
+    });
+
     it("maps tool_use_summary to tool_use_summary event", () => {
       const event = adapter.parseLine({
         type: "tool_use_summary",

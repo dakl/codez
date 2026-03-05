@@ -53,3 +53,12 @@ body {
     width 200ms ease,
     opacity 150ms ease;
 }
+
+@keyframes tooltip-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
