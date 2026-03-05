@@ -54,7 +54,7 @@ export function Sidebar() {
 
   const handleNewSession = async () => {
     if (!selectedRepoPath) return;
-    
+
     // Check if Mistral agent is selected and API key is configured
     if (selectedAgent === "mistral") {
       if (!window.electronAPI) return;
@@ -70,7 +70,7 @@ export function Sidebar() {
         return;
       }
     }
-    
+
     await createSession(selectedRepoPath, selectedAgent);
   };
 

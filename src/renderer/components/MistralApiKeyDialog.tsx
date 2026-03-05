@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef } from "react";
 
 interface MistralApiKeyDialogProps {
   onConfigure: () => void;
@@ -35,7 +35,10 @@ export function MistralApiKeyDialog({ onConfigure, onDismiss }: MistralApiKeyDia
           To use the Mistral Vibe agent, you need to configure your Mistral API key.
         </p>
         <p className="text-sm text-text-secondary mb-6">
-          Get your API key from <a href="https://mistral.ai" className="text-accent hover:underline">mistral.ai</a>
+          Get your API key from{" "}
+          <a href="https://mistral.ai" className="text-accent hover:underline">
+            mistral.ai
+          </a>
         </p>
         <div className="flex gap-3 justify-end">
           <button

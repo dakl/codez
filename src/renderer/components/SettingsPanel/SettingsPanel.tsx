@@ -263,7 +263,10 @@ export function SettingsPanel() {
           <label className="block mb-3">
             <span className="text-xs text-text-muted">API Key</span>
             <p className="text-xs text-text-muted/60 mt-0.5 mb-2">
-              Required for Mistral Vibe agent. Get your API key from <a href="https://mistral.ai" className="text-accent hover:underline">mistral.ai</a>
+              Required for Mistral Vibe agent. Get your API key from{" "}
+              <a href="https://mistral.ai" className="text-accent hover:underline">
+                mistral.ai
+              </a>
             </p>
             <div className="flex gap-2">
               <input
@@ -282,11 +285,7 @@ export function SettingsPanel() {
                 Save
               </button>
             </div>
-            {mistralApiKey && (
-              <p className="text-xs text-text-muted/60 mt-1">
-                API key saved ✓
-              </p>
-            )}
+            {mistralApiKey && <p className="text-xs text-text-muted/60 mt-1">API key saved ✓</p>}
           </label>
         </div>
       </div>

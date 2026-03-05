@@ -15,12 +15,12 @@ import {
 } from "./db/sessions.js";
 import { SessionLifecycle } from "./services/session-lifecycle.js";
 import {
+  getMistralApiKey,
   getShortcutOverrides,
   readSettings,
   saveShortcutOverrides,
-  writeSettings,
-  getMistralApiKey,
   setMistralApiKey,
+  writeSettings,
 } from "./settings.js";
 
 interface RegisterHandlersOptions {
@@ -35,12 +35,12 @@ export function registerIpcHandlers(options: RegisterHandlersOptions): void {
   // Strip CLAUDECODE env var so spawned agents don't think they're nested
   const cleanEnv = { ...process.env };
   delete cleanEnv.CLAUDECODE;
-  
+
   // Debug: Check if MISTRAL_API_KEY is in the environment
   const mistralApiKey = process.env.MISTRAL_API_KEY;
-  console.log(`[MistralDebug] MISTRAL_API_KEY in process.env: ${mistralApiKey ? 'SET' : 'NOT SET'}`);
-  console.log(`[MistralDebug] MISTRAL_API_KEY in cleanEnv: ${cleanEnv.MISTRAL_API_KEY ? 'SET' : 'NOT SET'}`);
-  
+  console.log(`[MistralDebug] MISTRAL_API_KEY in process.env: ${mistralApiKey ? "SET" : "NOT SET"}`);
+  console.log(`[MistralDebug] MISTRAL_API_KEY in cleanEnv: ${cleanEnv.MISTRAL_API_KEY ? "SET" : "NOT SET"}`);
+
   // If MISTRAL_API_KEY is not set, provide helpful guidance
   if (!mistralApiKey) {
     console.warn(`[MistralDebug] WARNING: MISTRAL_API_KEY environment variable is not set.`);
@@ -54,33 +54,46 @@ export function registerIpcHandlers(options: RegisterHandlersOptions): void {
     spawnFn: (binary, args, spawnOptions) => {
       // Debug environment for Mistral sessions
       if (binary === "vibe") {
-        console.log(`[MistralDebug] Spawning vibe with env.MISTRAL_API_KEY: ${cleanEnv.MISTRAL_API_KEY ? 'SET' : 'NOT SET'}`);
+        console.log(
+          `[MistralDebug] Spawning vibe with env.MISTRAL_API_KEY: ${cleanEnv.MISTRAL_API_KEY ? "SET" : "NOT SET"}`,
+        );
         console.log(`[MistralDebug] vibe binary path: ${binary}`);
-        console.log(`[MistralDebug] vibe args: ${args.join(' ')}`);
-        console.log(`[MistralDebug] Full command: vibe ${args.join(' ')}`);
+        console.log(`[MistralDebug] vibe args: ${args.join(" ")}`);
+        console.log(`[MistralDebug] Full command: vibe ${args.join(" ")}`);
         console.log(`[MistralDebug] Working directory: ${spawnOptions.cwd}`);
-        
+
         // Check if MISTRAL_API_KEY is actually set in the environment
         if (!cleanEnv.MISTRAL_API_KEY) {
           console.error(`[MistralDebug] ERROR: MISTRAL_API_KEY is not set in the environment!`);
-          console.error(`[MistralDebug] Available API-related env vars:`, Object.keys(cleanEnv).filter(k => k.includes('API') || k.includes('KEY')));
+          console.error(
+            `[MistralDebug] Available API-related env vars:`,
+            Object.keys(cleanEnv).filter((k) => k.includes("API") || k.includes("KEY")),
+          );
         }
       }
-      
+
       // For Mistral sessions, ensure we have the API key from either environment or settings
       if (binary === "vibe") {
         const settingsApiKey = getMistralApiKey(settingsPath);
-        
+
         // If we have API key from settings, add it to environment
         if (settingsApiKey && !cleanEnv.MISTRAL_API_KEY) {
           console.log(`[MistralDebug] Adding API key from settings to environment`);
           cleanEnv.MISTRAL_API_KEY = settingsApiKey;
         }
-        
+
         // Log final environment status
-        console.log(`[MistralDebug] Final MISTRAL_API_KEY status: ${cleanEnv.MISTRAL_API_KEY ? 'SET' : 'NOT SET'}`);
+        console.log(`[MistralDebug] Final MISTRAL_API_KEY status: ${cleanEnv.MISTRAL_API_KEY ? "SET" : "NOT SET"}`);
+
+        // Additional debugging: log the actual environment variables being passed
+        if (binary === "vibe") {
+          console.log(`[MistralDebug] Environment variables passed to vibe:`);
+          console.log(`[MistralDebug]   MISTRAL_API_KEY: ${cleanEnv.MISTRAL_API_KEY ? "***SET***" : "NOT SET"}`);
+          console.log(`[MistralDebug]   PATH: ${cleanEnv.PATH?.substring(0, 100)}...`);
+          console.log(`[MistralDebug]   HOME: ${cleanEnv.HOME || "NOT SET"}`);
+        }
       }
-      
+
       return spawn(binary, args, { ...spawnOptions, stdio: ["ignore", "pipe", "pipe"], env: cleanEnv });
     },
     getAllowedTools: () => {

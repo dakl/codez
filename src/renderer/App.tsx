@@ -1,8 +1,8 @@
 import { useEffect } from "react";
+import { MistralApiKeyDialog } from "./components/MistralApiKeyDialog";
 import { SessionView } from "./components/SessionView/SessionView";
 import { SettingsPanel } from "./components/SettingsPanel/SettingsPanel";
 import { Sidebar } from "./components/Sidebar/Sidebar";
-import { MistralApiKeyDialog } from "./components/MistralApiKeyDialog";
 import { useGlobalShortcuts } from "./hooks/useGlobalShortcuts";
 import { useSessionStore } from "./stores/sessionStore";
 import { useThemeStore } from "./stores/themeStore";
@@ -12,7 +12,7 @@ export function App() {
   const handleStatusChange = useSessionStore((state) => state.handleStatusChange);
   const loadTheme = useThemeStore((state) => state.loadTheme);
   const mistralApiKeyDialogOpen = useThemeStore((state) => state.mistralApiKeyDialogOpen);
-  const openMistralApiKeyDialog = useThemeStore((state) => state.openMistralApiKeyDialog);
+  const _openMistralApiKeyDialog = useThemeStore((state) => state.openMistralApiKeyDialog);
   const closeMistralApiKeyDialog = useThemeStore((state) => state.closeMistralApiKeyDialog);
   const openSettings = useThemeStore((state) => state.toggleSettings);
 

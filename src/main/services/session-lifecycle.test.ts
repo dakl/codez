@@ -479,19 +479,19 @@ describe("SessionLifecycle", () => {
       // Mock process.env to simulate missing API key
       const originalEnv = process.env;
       delete process.env.MISTRAL_API_KEY;
-      
+
       try {
         const mockProcess = createMockProcess();
         const spawnFn = vi.fn().mockReturnValue(mockProcess);
         const mockEmit = vi.fn();
-        
-        const lifecycle = new SessionLifecycle({ 
-          db, 
+
+        const lifecycle = new SessionLifecycle({
+          db,
           spawnFn,
-          getMistralApiKey: () => null // Mock settings to return no API key
+          getMistralApiKey: () => null, // Mock settings to return no API key
         });
         lifecycle.emit = mockEmit;
-        
+
         const session = lifecycle.startSession({
           repoPath: "/Users/dan/project",
           worktreePath: "/tmp/wt",
@@ -499,21 +499,24 @@ describe("SessionLifecycle", () => {
           name: "Test Mistral Session",
           prompt: "Test prompt",
         });
-        
+
         // Check that an error event was emitted
-        expect(mockEmit).toHaveBeenCalledWith("agentEvent", expect.objectContaining({
-          type: "error",
-          sessionId: session.id,
-          data: expect.objectContaining({
-            message: expect.stringContaining("API key"),
+        expect(mockEmit).toHaveBeenCalledWith(
+          "agentEvent",
+          expect.objectContaining({
+            type: "error",
+            sessionId: session.id,
+            data: expect.objectContaining({
+              message: expect.stringContaining("API key"),
+            }),
           }),
-        }));
-        
+        );
+
         expect(mockEmit).toHaveBeenCalledWith("statusChanged", session.id, "error");
-        
+
         // Verify spawnFn was NOT called (should return early)
         expect(spawnFn).not.toHaveBeenCalled();
-        
+
         // Check the session status in the database
         const updatedSession = getSession(db, session.id);
         expect(updatedSession?.status).toBe("error");
@@ -522,22 +525,22 @@ describe("SessionLifecycle", () => {
         process.env = originalEnv;
       }
     });
-    
+
     it("uses API key from settings when environment variable is not set", () => {
       // Mock process.env to simulate missing API key
       const originalEnv = process.env;
       delete process.env.MISTRAL_API_KEY;
-      
+
       try {
         const mockProcess = createMockProcess();
         const spawnFn = vi.fn().mockReturnValue(mockProcess);
-        
-        const lifecycle = new SessionLifecycle({ 
-          db, 
+
+        const lifecycle = new SessionLifecycle({
+          db,
           spawnFn,
-          getMistralApiKey: () => "test-api-key-from-settings" // Mock settings to return API key
+          getMistralApiKey: () => "test-api-key-from-settings", // Mock settings to return API key
         });
-        
+
         const session = lifecycle.startSession({
           repoPath: "/Users/dan/project",
           worktreePath: "/tmp/wt",
@@ -545,14 +548,13 @@ describe("SessionLifecycle", () => {
           name: "Test Mistral Session",
           prompt: "Test prompt",
         });
-        
+
         // Should proceed normally since we have API key from settings
         expect(session.status).toBe("running");
         expect(spawnFn).toHaveBeenCalled();
-        
+
         // Verify that the API key was set in process.env
         expect(process.env.MISTRAL_API_KEY).toBe("test-api-key-from-settings");
-        
       } finally {
         // Restore original environment and clean up
         process.env = originalEnv;

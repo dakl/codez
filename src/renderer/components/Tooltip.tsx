@@ -1,6 +1,8 @@
-import { type ReactNode, useCallback, useRef, useState } from "react";
+import { type ReactNode, useCallback, useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 
 const HOVER_DELAY_MS = 400;
+const GAP = 6;
 
 interface TooltipProps {
   label: string;
@@ -23,6 +25,9 @@ const ARROW_LEFT = (
 
 export function Tooltip({ label, children, position = "below", align = "center" }: TooltipProps) {
   const [hovered, setHovered] = useState(false);
+  const [coords, setCoords] = useState<{ top: number; left: number } | null>(null);
+  const triggerRef = useRef<HTMLSpanElement>(null);
+  const tooltipRef = useRef<HTMLSpanElement>(null);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const onMouseEnter = useCallback(() => {
@@ -32,27 +37,38 @@ export function Tooltip({ label, children, position = "below", align = "center" 
   const onMouseLeave = useCallback(() => {
     if (timerRef.current) clearTimeout(timerRef.current);
     setHovered(false);
+    setCoords(null);
   }, []);
 
-  const isEnd = align === "end";
+  useEffect(() => {
+    if (!hovered || !triggerRef.current) return;
 
-  const positionClasses = {
-    below: isEnd ? "top-full right-0 mt-1" : "top-full left-1/2 mt-1",
-    above: isEnd ? "bottom-full right-0 mb-1" : "bottom-full left-1/2 mb-1",
-    right: "left-full top-1/2 ml-1",
-  }[position];
+    // Defer position calculation so the portal tooltip is in the DOM
+    requestAnimationFrame(() => {
+      const trigger = triggerRef.current;
+      const tooltip = tooltipRef.current;
+      if (!trigger || !tooltip) return;
 
-  const transform = {
-    below: isEnd ? undefined : "translateX(-50%)",
-    above: isEnd ? undefined : "translateX(-50%)",
-    right: "translateY(-50%)",
-  }[position];
+      const rect = trigger.getBoundingClientRect();
+      const tipRect = tooltip.getBoundingClientRect();
 
-  const flexClasses = {
-    below: isEnd ? "flex-col items-end" : "flex-col items-center",
-    above: isEnd ? "flex-col items-end" : "flex-col items-center",
-    right: "flex-row items-center",
-  }[position];
+      let top = 0;
+      let left = 0;
+
+      if (position === "above") {
+        top = rect.top - tipRect.height - GAP;
+        left = align === "end" ? rect.right - tipRect.width : rect.left + rect.width / 2 - tipRect.width / 2;
+      } else if (position === "right") {
+        top = rect.top + rect.height / 2 - tipRect.height / 2;
+        left = rect.right + GAP;
+      } else {
+        top = rect.bottom + GAP;
+        left = align === "end" ? rect.right - tipRect.width : rect.left + rect.width / 2 - tipRect.width / 2;
+      }
+
+      setCoords({ top, left });
+    });
+  }, [hovered, position, align]);
 
   const arrow = { below: ARROW_UP, above: ARROW_DOWN, right: ARROW_LEFT }[position];
 
@@ -62,32 +78,42 @@ export function Tooltip({ label, children, position = "below", align = "center" 
     </span>
   );
 
-  return (
-    <span className="relative inline-flex" onMouseEnter={onMouseEnter} onMouseLeave={onMouseLeave}>
-      {children}
-      {hovered && (
-        <span
-          className={`absolute ${positionClasses} pointer-events-none z-50 flex ${flexClasses}`}
-          style={{ transform, animation: "tooltip-fade-in 100ms ease-out" }}
-        >
-          {position === "above" ? (
-            <>
-              {pill}
-              {arrow}
-            </>
-          ) : position === "right" ? (
-            <>
-              {arrow}
-              {pill}
-            </>
-          ) : (
-            <>
-              {arrow}
-              {pill}
-            </>
-          )}
-        </span>
+  const flexDir = position === "right" ? "flex-row items-center" : "flex-col items-center";
+
+  const tooltipContent = (
+    <span
+      ref={tooltipRef}
+      className={`fixed pointer-events-none z-[9999] flex ${flexDir}`}
+      style={{
+        top: coords?.top ?? -9999,
+        left: coords?.left ?? -9999,
+        opacity: coords ? 1 : 0,
+        animation: coords ? "tooltip-fade-in 100ms ease-out" : undefined,
+      }}
+    >
+      {position === "above" ? (
+        <>
+          {pill}
+          {arrow}
+        </>
+      ) : position === "right" ? (
+        <>
+          {arrow}
+          {pill}
+        </>
+      ) : (
+        <>
+          {arrow}
+          {pill}
+        </>
       )}
+    </span>
+  );
+
+  return (
+    <span ref={triggerRef} className="relative inline-flex" onMouseEnter={onMouseEnter} onMouseLeave={onMouseLeave}>
+      {children}
+      {hovered && createPortal(tooltipContent, document.body)}
     </span>
   );
 }
