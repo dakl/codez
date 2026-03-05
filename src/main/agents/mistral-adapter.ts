@@ -17,6 +17,7 @@ export class MistralAdapter {
   private allowedTools: string[];
   private additionalDirs: string[];
   private permissionMode: PermissionMode;
+  private seenMessageIds = new Set<string>();
 
   constructor(options: MistralAdapterOptions) {
     this.sessionId = options.sessionId;
@@ -27,12 +28,11 @@ export class MistralAdapter {
   }
 
   buildStartArgs(prompt: string): string[] {
-    // vibe CLI uses -p for programmatic mode, output format is positional after -p
-    // Format: vibe -p "prompt" streaming [--agent agentName] [--enabled-tools tool1]
+    // vibe CLI uses -p for programmatic mode, --output streaming for NDJSON format
+    // Format: vibe -p "prompt" --output streaming [--agent agentName] [--enabled-tools tool1]
     // Note: vibe doesn't support --session-id for new sessions like claude does
     // Also note: vibe expects task-oriented prompts, so we add context
-    const taskOrientedPrompt = `Codebase analysis task: ${prompt}`;
-    const args = ["-p", taskOrientedPrompt, "streaming"];
+    const args = ["-p", `"${prompt}"`, "--output", "streaming"];
     this.appendPermissionArgs(args);
     return args;
   }
@@ -43,8 +43,7 @@ export class MistralAdapter {
     }
     // Use --resume for specific session ID continuation
     // Make resume prompts task-oriented as well
-    const taskOrientedPrompt = `Continue codebase task: ${prompt}`;
-    const args = ["-p", taskOrientedPrompt, "streaming", "--resume", this.agentSessionId];
+    const args = ["-p", `"${prompt}"`, "--output", "streaming", "--resume", this.agentSessionId];
     this.appendPermissionArgs(args);
     return args;
   }
@@ -95,12 +94,78 @@ export class MistralAdapter {
 
   /**
    * Parse one or more NDJSON lines into events.
-   * A single line can produce multiple events (e.g., assistant message
-   * with tool_use blocks yields one tool_use_start per block plus message_complete).
+   * vibe CLI can produce either:
+   * 1. JSON format: {"role": "system", "content": "..."} or {"role": "assistant", "content": "..."}
+   * 2. Plain text format: "response text"
    */
   parseLines(lines: Record<string, unknown>[]): AgentEvent[] {
     const events: AgentEvent[] = [];
     for (const line of lines) {
+      // Check if this is the simple vibe format with role/content
+      if ("role" in line && "content" in line) {
+        // Skip replayed messages from resumed sessions
+        const messageId = line.message_id as string | undefined;
+        if (messageId) {
+          if (this.seenMessageIds.has(messageId)) continue;
+          this.seenMessageIds.add(messageId);
+        }
+
+        const role = line.role as string;
+        const content = line.content as string;
+
+        switch (role) {
+          case "system":
+            // System messages are treated as session initialization
+            if (!this.agentSessionId) {
+              // Generate a temporary session ID for vibe
+              this.agentSessionId = `vibe-${Date.now()}`;
+            }
+            events.push(
+              this.makeEvent("session_start", {
+                agentSessionId: this.agentSessionId,
+                tools: [], // vibe doesn't expose tools in system message
+                mcpServers: [],
+              }),
+            );
+            events.push(
+              this.makeEvent("text_complete", {
+                text: content,
+              }),
+            );
+            break;
+
+          case "assistant":
+            // Assistant messages contain the actual response
+            events.push(
+              this.makeEvent("text_delta", {
+                text: content,
+              }),
+            );
+            events.push(
+              this.makeEvent("text_complete", {
+                text: content,
+              }),
+            );
+            events.push(
+              this.makeEvent("message_complete", {
+                content,
+              }),
+            );
+            break;
+
+          case "user":
+            // User messages would be echoed back
+            events.push(
+              this.makeEvent("text_complete", {
+                text: content,
+              }),
+            );
+            break;
+        }
+        continue;
+      }
+
+      // Fallback to claude-style parsing for compatibility
       const messageType = line.type as string;
 
       switch (messageType) {

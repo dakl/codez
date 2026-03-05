@@ -14,9 +14,8 @@ describe("MistralAdapter", () => {
     const args = adapter.buildStartArgs("Hello, world!");
 
     expect(args).toContain("-p");
-    // Note: prompts are now prefixed with "Codebase analysis task: "
-    expect(args.some(arg => arg.includes("Codebase analysis task:"))).toBe(true);
-    // streaming is now a positional argument, not --output streaming
+    expect(args.some((arg) => arg.includes("Hello, world!"))).toBe(true);
+    // streaming is now --output streaming format
     expect(args).toContain("streaming");
     // Note: vibe doesn't support --session-id for new sessions like claude does
     expect(args).toContain("--agent");
@@ -39,9 +38,9 @@ describe("MistralAdapter", () => {
     const args = adapter.buildResumeArgs("Continue please");
 
     expect(args).toContain("-p");
-    // Note: prompts are now prefixed with "Continue codebase task: "
-    expect(args.some(arg => arg.includes("Continue codebase task:"))).toBe(true);
-    // streaming is now a positional argument
+    expect(args.some((arg) => arg.includes("Continue please"))).toBe(true);
+    // streaming is now --output streaming format
+    expect(args).toContain("--output");
     expect(args).toContain("streaming");
     expect(args).toContain("--resume");
     expect(args).toContain("agent-session-123");
@@ -240,5 +239,48 @@ describe("MistralAdapter", () => {
     expect(event?.type).toBe("session_end");
     expect(event?.data.result).toBe("Success");
     expect(event?.data.totalCostUsd).toBe(0.15);
+  });
+
+  describe("vibe-specific format parsing", () => {
+    it("parses vibe-style system messages with role/content format", () => {
+      const adapter = new MistralAdapter({
+        sessionId: "test-session",
+        worktreePath: "/tmp/test",
+      });
+
+      const lines = [
+        {
+          role: "system",
+          content: "You are a Python coding agent. Follow these rules...",
+        },
+      ];
+
+      const events = adapter.parseLines(lines);
+      expect(events.length).toBe(2); // session_start + text_complete
+      expect(events[0].type).toBe("session_start");
+      expect(events[1].type).toBe("text_complete");
+      expect(adapter.getAgentSessionId()).toMatch(/^vibe-\d+$/);
+    });
+
+    it("parses vibe-style assistant messages with role/content format", () => {
+      const adapter = new MistralAdapter({
+        sessionId: "test-session",
+        worktreePath: "/tmp/test",
+      });
+
+      const lines = [
+        {
+          role: "assistant",
+          content: "Hello! How can I assist you today?",
+        },
+      ];
+
+      const events = adapter.parseLines(lines);
+      expect(events.length).toBe(3); // text_delta + text_complete + message_complete
+      expect(events[0].type).toBe("text_delta");
+      expect(events[1].type).toBe("text_complete");
+      expect(events[2].type).toBe("message_complete");
+      expect(events[0].data.text).toBe("Hello! How can I assist you today?");
+    });
   });
 });

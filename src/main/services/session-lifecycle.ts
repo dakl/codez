@@ -1,5 +1,8 @@
 import type { ChildProcess } from "node:child_process";
 import { EventEmitter } from "node:events";
+import { readdirSync, statSync } from "node:fs";
+import { homedir } from "node:os";
+import { join } from "node:path";
 import type Database from "better-sqlite3";
 import type { AgentEvent, AgentType, SessionInfo } from "../../shared/agent-types.js";
 import { createAdapter } from "../agents/agent-registry.js";
@@ -57,22 +60,23 @@ export class SessionLifecycle extends EventEmitter {
 
   startSession(params: StartSessionParams): SessionInfo {
     console.log(`[MistralDebug] Starting session with agentType: ${params.agentType}`);
-    
+
     // Check for MISTRAL_API_KEY before creating session for Mistral agent
     if (params.agentType === "mistral") {
       const envApiKey = process.env.MISTRAL_API_KEY;
       const settingsApiKey = this.getMistralApiKey();
       const apiKey = envApiKey || settingsApiKey;
-      
-      console.log(`[MistralDebug] MISTRAL_API_KEY from env: ${envApiKey ? 'SET' : 'NOT SET'}`);
-      console.log(`[MistralDebug] MISTRAL_API_KEY from settings: ${settingsApiKey ? 'SET' : 'NOT SET'}`);
-      
+
+      console.log(`[MistralDebug] MISTRAL_API_KEY from env: ${envApiKey ? "SET" : "NOT SET"}`);
+      console.log(`[MistralDebug] MISTRAL_API_KEY from settings: ${settingsApiKey ? "SET" : "NOT SET"}`);
+
       if (!apiKey) {
-        const errorMessage = `Mistral Vibe requires an API key. ` +
-                          `You can set it in your shell environment (MISTRAL_API_KEY) ` +
-                          `or configure it in Codez settings.`;
+        const errorMessage =
+          `Mistral Vibe requires an API key. ` +
+          `You can set it in your shell environment (MISTRAL_API_KEY) ` +
+          `or configure it in Codez settings.`;
         console.error(`[MistralDebug] ERROR: ${errorMessage}`);
-        
+
         // Create session with error status immediately
         const session = createSession(this.db, {
           repoPath: params.repoPath,
@@ -80,24 +84,24 @@ export class SessionLifecycle extends EventEmitter {
           agentType: params.agentType,
           name: params.name,
         });
-        
+
         updateSessionStatus(this.db, session.id, "error");
-        
+
         // Emit a user-friendly error event
         this.emit("agentEvent", {
           type: "error",
           sessionId: session.id,
           timestamp: Date.now(),
-          data: { 
+          data: {
             message: errorMessage,
-            suggestion: "Set MISTRAL_API_KEY environment variable or configure API key in settings."
+            suggestion: "Set MISTRAL_API_KEY environment variable or configure API key in settings.",
           },
         });
-        
+
         this.emit("statusChanged", session.id, "error");
         return session; // Return early to prevent spawn attempt
       }
-      
+
       // If we have an API key from settings but not from environment, add it to the environment
       if (settingsApiKey && !envApiKey) {
         console.log(`[MistralDebug] Using API key from settings`);
@@ -126,34 +130,48 @@ export class SessionLifecycle extends EventEmitter {
     const parser = new StreamParser();
     const args = adapter.buildStartArgs(params.prompt);
     const binaryName = params.agentType === "mistral" ? "vibe" : "claude";
-    
+
     console.log(`[MistralDebug] Spawning binary: ${binaryName}`);
-    console.log(`[MistralDebug] Arguments: ${args.join(' ')}`);
+    console.log(`[MistralDebug] Arguments: ${args.join(" ")}`);
+    console.log(`[MistralDebug] Full command: ${binaryName} ${args.join(" ")}`);
     console.log(`[MistralDebug] Working directory: ${params.worktreePath}`);
-    console.log(`[MistralDebug] Allowed tools: ${this.getAllowedTools().join(', ')}`);
+    console.log(`[MistralDebug] Allowed tools: ${this.getAllowedTools().join(", ")}`);
     console.log(`[MistralDebug] Permission mode: ${this.getPermissionMode()}`);
-    
+
     // Debug environment variables for Mistral
     if (params.agentType === "mistral") {
-      console.log(`[MistralDebug] MISTRAL_API_KEY in process.env: ${process.env.MISTRAL_API_KEY ? 'SET' : 'NOT SET'}`);
+      console.log(`[MistralDebug] MISTRAL_API_KEY in process.env: ${process.env.MISTRAL_API_KEY ? "SET" : "NOT SET"}`);
       console.log(`[MistralDebug] Current working directory: ${process.cwd()}`);
-      console.log(`[MistralDebug] Full environment keys:`, Object.keys(process.env).filter(k => k.includes('API') || k.includes('KEY')));
+      console.log(
+        `[MistralDebug] Full environment keys:`,
+        Object.keys(process.env).filter((k) => k.includes("API") || k.includes("KEY")),
+      );
+
+      try {
+        const { execSync } = require("node:child_process");
+        const whichResult = execSync("which vibe", { encoding: "utf8" });
+        console.log(`[MistralDebug] vibe binary location: ${whichResult.trim()}`);
+      } catch (error) {
+        console.log(
+          `[MistralDebug] WARNING: vibe binary not found in PATH: ${error instanceof Error ? error.message : String(error)}`,
+        );
+      }
     }
-    
+
     // Add process event listeners for debugging
     const proc = this.spawnFn(binaryName, args, { cwd: params.worktreePath });
-    
+
     if (params.agentType === "mistral") {
-      proc.on('spawn', () => {
+      proc.on("spawn", () => {
         console.log(`[MistralDebug] Process spawned successfully with PID: ${proc.pid}`);
       });
-      
-      proc.on('error', (error) => {
+
+      proc.on("error", (error) => {
         console.error(`[MistralDebug] Process error:`, error);
         console.error(`[MistralDebug] Error message:`, error.message);
         console.error(`[MistralDebug] Error stack:`, error.stack);
         // Note: error.code may not exist on all error types
-        if ('code' in error) {
+        if ("code" in error) {
           console.error(`[MistralDebug] Error code:`, error.code);
         }
       });
@@ -227,13 +245,13 @@ export class SessionLifecycle extends EventEmitter {
 
     const args = active.adapter.buildResumeArgs(prompt);
     const binaryName = session.agentType === "mistral" ? "vibe" : "claude";
-    
+
     if (session.agentType === "mistral") {
       console.log(`[MistralDebug] Resuming session with binary: ${binaryName}`);
-      console.log(`[MistralDebug] Resume arguments: ${args.join(' ')}`);
+      console.log(`[MistralDebug] Resume arguments: ${args.join(" ")}`);
       console.log(`[MistralDebug] Resuming session ID: ${session.agentSessionId}`);
     }
-    
+
     const proc = this.spawnFn(binaryName, args, { cwd: active.worktreePath });
 
     active.process = proc;
@@ -300,7 +318,8 @@ export class SessionLifecycle extends EventEmitter {
 
     const parser = new StreamParser();
     const args = adapter.buildStartArgs(prompt);
-    const proc = this.spawnFn("claude", args, { cwd: session.worktreePath });
+    const binaryName = session.agentType === "mistral" ? "vibe" : "claude";
+    const proc = this.spawnFn(binaryName, args, { cwd: session.worktreePath });
 
     const activeSession: ActiveSession = {
       adapter,
@@ -319,6 +338,22 @@ export class SessionLifecycle extends EventEmitter {
 
     proc.stdout?.on("data", (chunk: Buffer | string) => {
       const data = typeof chunk === "string" ? chunk : chunk.toString("utf-8");
+
+      // Debug raw output for Mistral sessions
+      const session = getSession(this.db, sessionId);
+      if (session?.agentType === "mistral") {
+        console.log(`[MistralDebug] Raw stdout chunk (${data.length} bytes):`);
+        console.log(`[MistralDebug] ${data.trim()}`);
+
+        // Check if this looks like JSON or plain text
+        try {
+          const parsed = JSON.parse(data.trim());
+          console.log(`[MistralDebug] Parsed as JSON:`, parsed);
+        } catch (_e) {
+          console.log(`[MistralDebug] Not JSON format - plain text detected`);
+        }
+      }
+
       const lines = active.parser.feed(data);
       const events = active.adapter.parseLines(lines);
 
@@ -326,9 +361,8 @@ export class SessionLifecycle extends EventEmitter {
         this.handleEvent(sessionId, event);
         this.emit("agentEvent", event);
       }
-      
+
       // Log stdout for mistral sessions to help debugging
-      const session = getSession(this.db, sessionId);
       if (session?.agentType === "mistral") {
         console.log(`[MistralDebug] stdout chunk:`, data.trim());
       }
@@ -352,6 +386,18 @@ export class SessionLifecycle extends EventEmitter {
       active.process = null;
 
       if (code === 0) {
+        // For vibe sessions, capture the real session ID from the filesystem
+        // Only scan on the first turn (when we have a fake or missing ID)
+        const session = getSession(this.db, sessionId);
+        const currentVibeId = active.adapter.getAgentSessionId();
+        const needsRealId = session?.agentType === "mistral" && (!currentVibeId || currentVibeId.startsWith("vibe-"));
+        if (needsRealId) {
+          const vibeSessionId = this.findLatestVibeSessionId();
+          if (vibeSessionId) {
+            active.adapter.setAgentSessionId(vibeSessionId);
+            updateAgentSessionId(this.db, sessionId, vibeSessionId);
+          }
+        }
         updateSessionStatus(this.db, sessionId, "waiting_for_input");
         this.emit("statusChanged", sessionId, "waiting_for_input");
       } else if (signal === "SIGTERM") {
@@ -362,14 +408,14 @@ export class SessionLifecycle extends EventEmitter {
         // Get the session to determine which binary was running
         const session = getSession(this.db, sessionId);
         const binaryName = session?.agentType === "mistral" ? "vibe" : "claude";
-        
+
         if (session?.agentType === "mistral") {
           console.error(`[MistralDebug] Full stderr output:`);
           console.error(stderrBuffer);
           console.error(`[MistralDebug] Exit code: ${code}`);
           console.error(`[MistralDebug] This suggests vibe rejected our arguments or encountered an error`);
         }
-        
+
         console.error(`[session ${sessionId}] ${binaryName} exited ${code}: ${errorMessage}`);
         updateSessionStatus(this.db, sessionId, "error");
         this.emit("statusChanged", sessionId, "error");
@@ -393,6 +439,31 @@ export class SessionLifecycle extends EventEmitter {
         data: { message: `Failed to start claude: ${err.message}` },
       });
     });
+  }
+
+  /**
+   * Find the most recently created vibe session ID from ~/.vibe/logs/session/.
+   * Returns the hash suffix (e.g. "92ed7308") which vibe accepts for --resume.
+   */
+  private findLatestVibeSessionId(): string | null {
+    try {
+      const sessionDir = join(homedir(), ".vibe", "logs", "session");
+      const entries = readdirSync(sessionDir)
+        .filter((name) => name.startsWith("session_"))
+        .map((name) => ({
+          name,
+          mtime: statSync(join(sessionDir, name)).mtimeMs,
+        }))
+        .sort((a, b) => b.mtime - a.mtime);
+
+      if (entries.length === 0) return null;
+
+      // Extract hash suffix: session_20260305_140511_92ed7308 → 92ed7308
+      const match = entries[0].name.match(/_([a-f0-9]+)$/);
+      return match ? match[1] : null;
+    } catch {
+      return null;
+    }
   }
 
   private handleEvent(sessionId: string, event: AgentEvent): void {
@@ -427,12 +498,22 @@ export class SessionLifecycle extends EventEmitter {
     }
 
     if (event.type === "message_complete") {
-      const content = event.data.content as Array<{ type: string; text?: string; thinking?: string }>;
-      const textParts = content.filter((block) => block.type === "text").map((block) => block.text ?? "");
-      const fullText = textParts.join("");
+      const rawContent = event.data.content;
+      let fullText: string;
+      let thinkingText: string | undefined;
 
-      const thinkingParts = content.filter((block) => block.type === "thinking").map((block) => block.thinking ?? "");
-      const thinkingText = thinkingParts.join("") || undefined;
+      if (typeof rawContent === "string") {
+        // Vibe format: content is a plain string
+        fullText = rawContent;
+        thinkingText = undefined;
+      } else {
+        // Claude format: content is an array of typed blocks
+        const content = rawContent as Array<{ type: string; text?: string; thinking?: string }>;
+        const textParts = content.filter((block) => block.type === "text").map((block) => block.text ?? "");
+        fullText = textParts.join("");
+        const thinkingParts = content.filter((block) => block.type === "thinking").map((block) => block.thinking ?? "");
+        thinkingText = thinkingParts.join("") || undefined;
+      }
 
       if (fullText) {
         createMessage(this.db, {
