@@ -25,7 +25,8 @@ export function Sidebar() {
 
   const [permissionMode, setPermissionMode] = useState<PermissionMode>("default");
   const [archiveOpen, setArchiveOpen] = useState(false);
-  const [selectedAgent, setSelectedAgent] = useState<"claude" | "mistral">("claude");
+
+  const openNewSessionDialog = useThemeStore((state) => state.openNewSessionDialog);
 
   // Load repos and settings on mount
   useEffect(() => {
@@ -35,9 +36,6 @@ export function Sidebar() {
         if (settings.permissionMode) {
           setPermissionMode(settings.permissionMode);
         }
-        // Load default agent from settings or use Claude as default
-        const defaultAgent = (settings.agentConfigs?.defaultAgent as "claude" | "mistral") ?? "claude";
-        setSelectedAgent(defaultAgent);
       });
     }
   }, [loadRepos]);
@@ -50,28 +48,9 @@ export function Sidebar() {
     }
   }, [selectedRepoPath, loadSessions, loadArchivedSessions]);
 
-  const openMistralApiKeyDialog = useThemeStore((state) => state.openMistralApiKeyDialog);
-
-  const handleNewSession = async () => {
+  const handleNewSession = () => {
     if (!selectedRepoPath) return;
-
-    // Check if Mistral agent is selected and API key is configured
-    if (selectedAgent === "mistral") {
-      if (!window.electronAPI) return;
-      const apiKey = await window.electronAPI.getMistralApiKey();
-      if (!apiKey) {
-        // Open Mistral API key dialog
-        if (window.electronAPI) {
-          window.electronAPI.getAppInfo().then((appInfo) => {
-            console.log(`[${appInfo.name}] Mistral API key required but not configured`);
-          });
-        }
-        openMistralApiKeyDialog();
-        return;
-      }
-    }
-
-    await createSession(selectedRepoPath, selectedAgent);
+    openNewSessionDialog();
   };
 
   const handleRepoChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
@@ -173,25 +152,6 @@ export function Sidebar() {
           )}
         </div>
       )}
-
-      {/* Agent selector */}
-      <div className="px-3 py-2 border-t border-border">
-        <label className="block text-[10px] uppercase tracking-wider text-text-muted mb-1">Agent</label>
-        <select
-          value={selectedAgent}
-          onChange={(e) => {
-            const agent = e.target.value as "claude" | "mistral";
-            setSelectedAgent(agent);
-            if (window.electronAPI) {
-              window.electronAPI.saveSettings({ agentConfigs: { defaultAgent: agent } });
-            }
-          }}
-          className="w-full rounded-md bg-input border border-border px-2 py-1 text-xs text-text-secondary focus:outline-none focus:border-accent [-webkit-app-region:no-drag]"
-        >
-          <option value="claude">Claude</option>
-          <option value="mistral">Mistral</option>
-        </select>
-      </div>
 
       {/* Permission mode selector */}
       <div className="px-3 py-2 border-t border-border">

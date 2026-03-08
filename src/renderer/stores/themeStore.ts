@@ -13,6 +13,7 @@ interface ThemeState {
   activeThemeId: ThemeId;
   settingsOpen: boolean;
   mistralApiKeyDialogOpen: boolean;
+  newSessionDialogOpen: boolean;
 
   toggleSettings: () => void;
   closeSettings: () => void;
@@ -20,12 +21,15 @@ interface ThemeState {
   loadTheme: () => Promise<void>;
   openMistralApiKeyDialog: () => void;
   closeMistralApiKeyDialog: () => void;
+  openNewSessionDialog: () => void;
+  closeNewSessionDialog: () => void;
 }
 
 export const useThemeStore = create<ThemeState>((set) => ({
   activeThemeId: DEFAULT_THEME_ID,
   settingsOpen: false,
   mistralApiKeyDialogOpen: false,
+  newSessionDialogOpen: false,
 
   toggleSettings: () => {
     set((state) => ({ settingsOpen: !state.settingsOpen }));
@@ -41,6 +45,14 @@ export const useThemeStore = create<ThemeState>((set) => ({
 
   closeMistralApiKeyDialog: () => {
     set({ mistralApiKeyDialogOpen: false });
+  },
+
+  openNewSessionDialog: () => {
+    set({ newSessionDialogOpen: true });
+  },
+
+  closeNewSessionDialog: () => {
+    set({ newSessionDialogOpen: false });
   },
 
   setTheme: (id) => {

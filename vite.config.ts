@@ -15,8 +15,18 @@ export default defineConfig({
     outDir: '../../dist/renderer',
     emptyOutDir: true,
   },
+  optimizeDeps: {
+    exclude: ['@huggingface/transformers'],
+  },
+  worker: {
+    format: 'es',
+  },
   server: {
     port: 5174,
     strictPort: true,
+    headers: {
+      'Cross-Origin-Opener-Policy': 'same-origin',
+      'Cross-Origin-Embedder-Policy': 'require-corp',
+    },
   },
 });
