@@ -12,20 +12,16 @@ export function applyThemeToElement(theme: ThemeDefinition, element: HTMLElement
 interface ThemeState {
   activeThemeId: ThemeId;
   settingsOpen: boolean;
-  mistralApiKeyDialogOpen: boolean;
 
   toggleSettings: () => void;
   closeSettings: () => void;
   setTheme: (id: ThemeId) => void;
   loadTheme: () => Promise<void>;
-  openMistralApiKeyDialog: () => void;
-  closeMistralApiKeyDialog: () => void;
 }
 
 export const useThemeStore = create<ThemeState>((set) => ({
   activeThemeId: DEFAULT_THEME_ID,
   settingsOpen: false,
-  mistralApiKeyDialogOpen: false,
 
   toggleSettings: () => {
     set((state) => ({ settingsOpen: !state.settingsOpen }));
@@ -33,14 +29,6 @@ export const useThemeStore = create<ThemeState>((set) => ({
 
   closeSettings: () => {
     set({ settingsOpen: false });
-  },
-
-  openMistralApiKeyDialog: () => {
-    set({ mistralApiKeyDialogOpen: true });
-  },
-
-  closeMistralApiKeyDialog: () => {
-    set({ mistralApiKeyDialogOpen: false });
   },
 
   setTheme: (id) => {

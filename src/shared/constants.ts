@@ -10,13 +10,12 @@ export const IPC = {
   SESSIONS_LIST: "sessions:list",
   SESSIONS_LIST_ARCHIVED: "sessions:listArchived",
   SESSIONS_GET_MESSAGES: "sessions:getMessages",
-  SESSIONS_RESPOND_PERMISSION: "sessions:respondPermission",
-
   // Repos
   REPOS_ADD: "repos:add",
   REPOS_REMOVE: "repos:remove",
   REPOS_LIST: "repos:list",
   REPOS_SELECT_DIALOG: "repos:selectDialog",
+  REPOS_GET_BRANCH: "repos:getBranch",
 
   // Worktrees
   WORKTREES_LIST: "worktrees:list",
@@ -35,13 +34,18 @@ export const IPC = {
   SETTINGS_SAVE_SHORTCUTS: "settings:saveShortcuts",
   SETTINGS_GET: "settings:get",
   SETTINGS_SAVE: "settings:save",
-  SETTINGS_GET_MISTRAL_API_KEY: "settings:getMistralApiKey",
-  SETTINGS_SET_MISTRAL_API_KEY: "settings:setMistralApiKey",
-
   // App
   APP_GET_INFO: "app:getInfo",
+
+  // PTY
+  PTY_CREATE: "pty:create",
+  PTY_INPUT: "pty:input",
+  PTY_RESIZE: "pty:resize",
+  PTY_KILL: "pty:kill",
 
   // Events (main → renderer)
   EVENT_AGENT: "event:agent",
   EVENT_SESSION_STATUS: "event:sessionStatus",
+  EVENT_PTY_DATA: "event:ptyData",
+  EVENT_PTY_EXIT: "event:ptyExit",
 } as const;

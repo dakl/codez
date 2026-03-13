@@ -1,6 +1,7 @@
-import { spawn } from "node:child_process";
+import { execFileSync, spawn } from "node:child_process";
 import type Database from "better-sqlite3";
-import { type BrowserWindow, dialog, ipcMain } from "electron";
+import { app, type BrowserWindow, dialog, ipcMain } from "electron";
+import * as pty from "node-pty";
 import type { AgentType } from "../shared/agent-types.js";
 import { IPC } from "../shared/constants.js";
 import { createMessage, deleteMessagesBySession, listMessages } from "./db/messages.js";
@@ -9,19 +10,16 @@ import {
   archiveSession,
   createSession,
   deleteSession,
+  getSession,
   listArchivedSessions,
   listSessions,
   restoreSession,
+  updateAgentSessionId,
+  updateSessionStatus,
 } from "./db/sessions.js";
+import { PtyManager } from "./services/pty-manager.js";
 import { SessionLifecycle } from "./services/session-lifecycle.js";
-import {
-  getMistralApiKey,
-  getShortcutOverrides,
-  readSettings,
-  saveShortcutOverrides,
-  setMistralApiKey,
-  writeSettings,
-} from "./settings.js";
+import { getShortcutOverrides, readSettings, saveShortcutOverrides, writeSettings } from "./settings.js";
 
 interface RegisterHandlersOptions {
   db: Database.Database;
@@ -36,77 +34,54 @@ export function registerIpcHandlers(options: RegisterHandlersOptions): void {
   const cleanEnv = { ...process.env };
   delete cleanEnv.CLAUDECODE;
 
-  // Debug: Check if MISTRAL_API_KEY is in the environment
-  const mistralApiKey = process.env.MISTRAL_API_KEY;
-  console.log(`[MistralDebug] MISTRAL_API_KEY in process.env: ${mistralApiKey ? "SET" : "NOT SET"}`);
-  console.log(`[MistralDebug] MISTRAL_API_KEY in cleanEnv: ${cleanEnv.MISTRAL_API_KEY ? "SET" : "NOT SET"}`);
-
-  // If MISTRAL_API_KEY is not set, provide helpful guidance
-  if (!mistralApiKey) {
-    console.warn(`[MistralDebug] WARNING: MISTRAL_API_KEY environment variable is not set.`);
-    console.warn(`[MistralDebug] To use Mistral Vibe, set MISTRAL_API_KEY in your environment:`);
-    console.warn(`[MistralDebug] export MISTRAL_API_KEY="your-api-key-here"`);
-    console.warn(`[MistralDebug] Or add it to your shell configuration file (.zshrc, .bashrc, etc.)`);
-  }
-
   const lifecycle = new SessionLifecycle({
     db,
     spawnFn: (binary, args, spawnOptions) => {
-      // Debug environment for Mistral sessions
-      if (binary === "vibe") {
-        console.log(
-          `[MistralDebug] Spawning vibe with env.MISTRAL_API_KEY: ${cleanEnv.MISTRAL_API_KEY ? "SET" : "NOT SET"}`,
-        );
-        console.log(`[MistralDebug] vibe binary path: ${binary}`);
-        console.log(`[MistralDebug] vibe args: ${args.join(" ")}`);
-        console.log(`[MistralDebug] Full command: vibe ${args.join(" ")}`);
-        console.log(`[MistralDebug] Working directory: ${spawnOptions.cwd}`);
-
-        // Check if MISTRAL_API_KEY is actually set in the environment
-        if (!cleanEnv.MISTRAL_API_KEY) {
-          console.error(`[MistralDebug] ERROR: MISTRAL_API_KEY is not set in the environment!`);
-          console.error(
-            `[MistralDebug] Available API-related env vars:`,
-            Object.keys(cleanEnv).filter((k) => k.includes("API") || k.includes("KEY")),
-          );
-        }
-      }
-
-      // For Mistral sessions, ensure we have the API key from either environment or settings
-      if (binary === "vibe") {
-        const settingsApiKey = getMistralApiKey(settingsPath);
-
-        // If we have API key from settings, add it to environment
-        if (settingsApiKey && !cleanEnv.MISTRAL_API_KEY) {
-          console.log(`[MistralDebug] Adding API key from settings to environment`);
-          cleanEnv.MISTRAL_API_KEY = settingsApiKey;
-        }
-
-        // Log final environment status
-        console.log(`[MistralDebug] Final MISTRAL_API_KEY status: ${cleanEnv.MISTRAL_API_KEY ? "SET" : "NOT SET"}`);
-
-        // Additional debugging: log the actual environment variables being passed
-        if (binary === "vibe") {
-          console.log(`[MistralDebug] Environment variables passed to vibe:`);
-          console.log(`[MistralDebug]   MISTRAL_API_KEY: ${cleanEnv.MISTRAL_API_KEY ? "***SET***" : "NOT SET"}`);
-          console.log(`[MistralDebug]   PATH: ${cleanEnv.PATH?.substring(0, 100)}...`);
-          console.log(`[MistralDebug]   HOME: ${cleanEnv.HOME || "NOT SET"}`);
-        }
-      }
-
       return spawn(binary, args, { ...spawnOptions, stdio: ["ignore", "pipe", "pipe"], env: cleanEnv });
     },
-    getAllowedTools: () => {
-      const settings = readSettings(settingsPath);
-      return settings.agentConfigs?.claude?.defaultPermissions ?? [];
-    },
-    getPermissionMode: () => {
-      const settings = readSettings(settingsPath);
-      return settings.permissionMode ?? "default";
-    },
-    getMistralApiKey: () => {
-      return getMistralApiKey(settingsPath);
-    },
+  });
+
+  // --- PTY Manager ---
+  const ptyManager = new PtyManager((file, args, options) => {
+    return pty.spawn(file, args, options);
+  });
+
+  ptyManager.on("data", (sessionId: string, data: string) => {
+    const window = getMainWindow();
+    if (window) {
+      window.webContents.send(IPC.EVENT_PTY_DATA, sessionId, data);
+    }
+  });
+
+  ptyManager.on("exit", (sessionId: string, exitCode: number) => {
+    const window = getMainWindow();
+    if (window) {
+      window.webContents.send(IPC.EVENT_PTY_EXIT, sessionId, exitCode);
+    }
+    if (exitCode === 0) {
+      // Auto-archive on clean exit to keep sidebar uncluttered
+      archiveSession(db, sessionId);
+      if (window) {
+        window.webContents.send(IPC.EVENT_SESSION_STATUS, sessionId, "archived");
+      }
+    } else {
+      updateSessionStatus(db, sessionId, "error");
+      if (window) {
+        window.webContents.send(IPC.EVENT_SESSION_STATUS, sessionId, "error");
+      }
+    }
+  });
+
+  ptyManager.on("statusChanged", (sessionId: string, status: string) => {
+    updateSessionStatus(db, sessionId, status as "running" | "waiting_for_input");
+    const window = getMainWindow();
+    if (window) {
+      window.webContents.send(IPC.EVENT_SESSION_STATUS, sessionId, status);
+    }
+  });
+
+  app.on("before-quit", () => {
+    ptyManager.killAll();
   });
 
   // Forward agent events to the renderer
@@ -168,12 +143,41 @@ export function registerIpcHandlers(options: RegisterHandlersOptions): void {
     return listArchivedSessions(db, repoPath);
   });
 
+  // --- PTY ---
+
   ipcMain.handle(
-    IPC.SESSIONS_RESPOND_PERMISSION,
-    (_event, sessionId: string, requestId: string, approved: boolean, updatedInput?: Record<string, unknown>) => {
-      lifecycle.respondPermission(sessionId, requestId, approved, updatedInput);
+    IPC.PTY_CREATE,
+    (_event, sessionId: string, agentType: AgentType, worktreePath: string, cols: number, rows: number) => {
+      // Check if this session has been used before (has agentSessionId marker)
+      const sessionRecord = getSession(db, sessionId);
+      const hasBeenUsed = !!sessionRecord?.agentSessionId;
+
+      ptyManager.create(sessionId, agentType, worktreePath, cols, rows, hasBeenUsed ? "continue" : null);
+
+      // Mark session as used so future restarts pass --continue
+      if (!hasBeenUsed) {
+        updateAgentSessionId(db, sessionId, "used");
+      }
+
+      updateSessionStatus(db, sessionId, "running");
+      const window = getMainWindow();
+      if (window) {
+        window.webContents.send(IPC.EVENT_SESSION_STATUS, sessionId, "running");
+      }
     },
   );
+
+  ipcMain.handle(IPC.PTY_INPUT, (_event, sessionId: string, data: string) => {
+    ptyManager.write(sessionId, data);
+  });
+
+  ipcMain.handle(IPC.PTY_RESIZE, (_event, sessionId: string, cols: number, rows: number) => {
+    ptyManager.resize(sessionId, cols, rows);
+  });
+
+  ipcMain.handle(IPC.PTY_KILL, (_event, sessionId: string) => {
+    ptyManager.kill(sessionId);
+  });
 
   // --- Repos ---
 
@@ -188,6 +192,19 @@ export function registerIpcHandlers(options: RegisterHandlersOptions): void {
 
   ipcMain.handle(IPC.REPOS_LIST, () => {
     return listRepos(db);
+  });
+
+  ipcMain.handle(IPC.REPOS_GET_BRANCH, (_event, repoPath: string) => {
+    try {
+      const branch = execFileSync("git", ["rev-parse", "--abbrev-ref", "HEAD"], {
+        cwd: repoPath,
+        encoding: "utf8",
+        timeout: 3000,
+      }).trim();
+      return branch || null;
+    } catch {
+      return null;
+    }
   });
 
   ipcMain.handle(IPC.REPOS_SELECT_DIALOG, async () => {
@@ -222,15 +239,6 @@ export function registerIpcHandlers(options: RegisterHandlersOptions): void {
 
   ipcMain.handle(IPC.SETTINGS_SAVE_SHORTCUTS, (_event, overrides: Record<string, string>) => {
     saveShortcutOverrides(settingsPath, overrides);
-  });
-
-  // Mistral API Key settings
-  ipcMain.handle(IPC.SETTINGS_GET_MISTRAL_API_KEY, () => {
-    return getMistralApiKey(settingsPath);
-  });
-
-  ipcMain.handle(IPC.SETTINGS_SET_MISTRAL_API_KEY, (_event, apiKey: string) => {
-    setMistralApiKey(settingsPath, apiKey);
   });
 
   // --- App ---

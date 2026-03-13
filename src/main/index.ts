@@ -2,6 +2,7 @@ import { execFileSync } from "node:child_process";
 import path from "node:path";
 import { app, BrowserWindow } from "electron";
 import { createDatabase } from "./db/connection.js";
+import { resetStaleSessions } from "./db/sessions.js";
 import { registerIpcHandlers } from "./ipc-handlers.js";
 import { getDbPath, getSettingsPath } from "./paths.js";
 
@@ -57,6 +58,13 @@ function createWindow(): void {
 
 app.whenReady().then(() => {
   const db = createDatabase(getDbPath());
+
+  // PTYs don't survive app restarts — reset running/waiting sessions to idle
+  const staleCount = resetStaleSessions(db);
+  if (staleCount > 0) {
+    console.log(`[startup] Reset ${staleCount} stale session(s) to idle`);
+  }
+
   registerIpcHandlers({
     db,
     settingsPath: getSettingsPath(),

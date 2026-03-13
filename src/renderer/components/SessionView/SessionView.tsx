@@ -1,48 +1,42 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useSessionStore } from "../../stores/sessionStore";
-import { PermissionDialog } from "../PermissionDialog";
-import { MessageBubble } from "./MessageBubble";
-import { MessageInput } from "./MessageInput";
-import { StreamingIndicator } from "./StreamingIndicator";
-import { ThinkingIndicator } from "./ThinkingIndicator";
+import { TerminalView } from "./TerminalView";
 
 export function SessionView() {
   const activeSessionId = useSessionStore((state) => state.activeSessionId);
   const sessions = useSessionStore((state) => state.sessions);
-  const messages = useSessionStore((state) => state.messages);
-  const streamingText = useSessionStore((state) => state.streamingText);
-  const streamingThinking = useSessionStore((state) => state.streamingThinking);
-  const sendMessage = useSessionStore((state) => state.sendMessage);
-  const stopSession = useSessionStore((state) => state.stopSession);
-  const pendingPermissions = useSessionStore((state) => state.pendingPermissions);
-  const respondPermission = useSessionStore((state) => state.respondPermission);
-  const alwaysAllowTool = useSessionStore((state) => state.alwaysAllowTool);
-  const messagesEndRef = useRef<HTMLDivElement>(null);
-  const scrollContainerRef = useRef<HTMLDivElement>(null);
-  const isAtBottom = useRef(true);
   const [escPrimed, setEscPrimed] = useState(false);
   const escTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  // Track which sessions have been opened (PTY created) this app session.
+  // Prevents spawning PTYs for every session loaded from DB.
+  const [openedSessionIds, setOpenedSessionIds] = useState<Set<string>>(new Set());
+
+  // When a session becomes active, mark it as opened
+  useEffect(() => {
+    if (activeSessionId) {
+      setOpenedSessionIds((prev) => {
+        if (prev.has(activeSessionId)) return prev;
+        const next = new Set(prev);
+        next.add(activeSessionId);
+        return next;
+      });
+    }
+  }, [activeSessionId]);
+
   const session = sessions.find((s) => s.id === activeSessionId);
-  const sessionMessages = activeSessionId ? (messages.get(activeSessionId) ?? []) : [];
-  const currentStreamingText = activeSessionId ? (streamingText.get(activeSessionId) ?? "") : "";
-  const currentThinkingText = activeSessionId ? (streamingThinking.get(activeSessionId) ?? "") : "";
-
   const isRunning = session?.status === "running";
-  const pendingPermission = activeSessionId ? pendingPermissions.get(activeSessionId) : undefined;
 
-  // Double-Esc to cancel
+  // Double-Esc to kill PTY
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key !== "Escape" || !isRunning || !activeSessionId) return;
 
       if (escPrimed) {
-        // Second Esc within the window — stop the agent
         if (escTimerRef.current) clearTimeout(escTimerRef.current);
         setEscPrimed(false);
-        stopSession(activeSessionId);
+        window.electronAPI.ptyKill(activeSessionId);
       } else {
-        // First Esc — prime with 1s window
         setEscPrimed(true);
         escTimerRef.current = setTimeout(() => setEscPrimed(false), 1000);
       }
@@ -53,26 +47,23 @@ export function SessionView() {
       window.removeEventListener("keydown", handleKeyDown);
       if (escTimerRef.current) clearTimeout(escTimerRef.current);
     };
-  }, [isRunning, activeSessionId, escPrimed, stopSession]);
+  }, [isRunning, activeSessionId, escPrimed]);
 
-  // Clear primed state when session stops running
   useEffect(() => {
     if (!isRunning) setEscPrimed(false);
   }, [isRunning]);
 
-  const handleScroll = useCallback(() => {
-    const container = scrollContainerRef.current;
-    if (!container) return;
-    const distanceFromBottom = container.scrollHeight - container.scrollTop - container.clientHeight;
-    isAtBottom.current = distanceFromBottom < 50;
-  }, []);
-
-  // Tail-follow: only auto-scroll when user is at the bottom
+  // Fetch branch name for the active session's repo
+  const [branchName, setBranchName] = useState<string | null>(null);
   useEffect(() => {
-    if (isAtBottom.current) {
-      messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    if (!session?.repoPath) {
+      setBranchName(null);
+      return;
     }
-  }, []);
+    window.electronAPI.getRepoBranch(session.repoPath).then(setBranchName);
+  }, [session?.repoPath]);
+
+  const folderName = session?.repoPath.split("/").pop() || session?.repoPath;
 
   if (!activeSessionId || !session) {
     return (
@@ -85,29 +76,16 @@ export function SessionView() {
     );
   }
 
+  // Only render TerminalViews for sessions that have been activated
+  const openedSessions = sessions.filter((s) => openedSessionIds.has(s.id));
+
   return (
     <div className="flex-1 flex flex-col min-h-0">
       {/* Session header */}
-      <div className="h-10 flex items-center px-4 border-b border-border">
-        <span className="text-sm font-medium text-text-secondary">{session.name}</span>
+      <div className="h-10 flex items-center px-4 border-b border-border gap-2">
+        <span className="text-sm font-medium text-text-primary font-mono">{folderName}</span>
+        {branchName && <span className="text-xs text-text-muted font-mono">{branchName}</span>}
         <StatusBadge status={session.status} />
-      </div>
-
-      {/* Messages */}
-      <div ref={scrollContainerRef} onScroll={handleScroll} className="flex-1 overflow-y-auto p-4">
-        {sessionMessages.length === 0 && !currentStreamingText && (
-          <div className="flex items-center justify-center h-full">
-            <p className="text-sm text-text-muted">Send a message to start coding</p>
-          </div>
-        )}
-        {sessionMessages.map((message) => (
-          <MessageBubble key={message.id} message={message} />
-        ))}
-        {isRunning && (currentThinkingText || !currentStreamingText) && (
-          <ThinkingIndicator text={currentThinkingText} />
-        )}
-        {currentStreamingText && <StreamingIndicator text={currentStreamingText} />}
-        <div ref={messagesEndRef} />
       </div>
 
       {/* Esc cancel indicator */}
@@ -117,17 +95,18 @@ export function SessionView() {
         </div>
       )}
 
-      {/* Input */}
-      <MessageInput onSend={(message) => sendMessage(activeSessionId, message)} disabled={isRunning} />
-
-      {pendingPermission && (
-        <PermissionDialog
-          permission={pendingPermission}
-          onApprove={() => respondPermission(activeSessionId, true)}
-          onAlwaysAllow={() => alwaysAllowTool(activeSessionId)}
-          onDeny={() => respondPermission(activeSessionId, false)}
-        />
-      )}
+      {/* Terminal stack — only opened sessions get a PTY */}
+      <div className="flex-1 min-h-0 relative">
+        {openedSessions.map((s) => (
+          <TerminalView
+            key={s.id}
+            sessionId={s.id}
+            agentType={s.agentType}
+            worktreePath={s.worktreePath}
+            isActive={s.id === activeSessionId}
+          />
+        ))}
+      </div>
     </div>
   );
 }

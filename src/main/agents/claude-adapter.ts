@@ -1,34 +1,28 @@
 import type { AgentEvent, AgentEventType } from "../../shared/agent-types.js";
 
-type PermissionMode = "default" | "acceptEdits" | "bypassPermissions" | "plan";
-
 interface ClaudeAdapterOptions {
   sessionId: string;
   worktreePath: string;
-  allowedTools?: string[];
   additionalDirs?: string[];
-  permissionMode?: PermissionMode;
 }
 
 export class ClaudeAdapter {
   private sessionId: string;
   private worktreePath: string;
   private agentSessionId: string | null = null;
-  private allowedTools: string[];
   private additionalDirs: string[];
-  private permissionMode: PermissionMode;
 
   constructor(options: ClaudeAdapterOptions) {
     this.sessionId = options.sessionId;
     this.worktreePath = options.worktreePath;
-    this.allowedTools = options.allowedTools ?? [];
     this.additionalDirs = options.additionalDirs ?? [];
-    this.permissionMode = options.permissionMode ?? "default";
   }
 
   buildStartArgs(prompt: string): string[] {
     const args = ["-p", prompt, "--output-format", "stream-json", "--verbose", "--session-id", this.sessionId];
-    this.appendPermissionArgs(args);
+    for (const dir of this.additionalDirs) {
+      args.push("--add-dir", dir);
+    }
     return args;
   }
 
@@ -37,36 +31,17 @@ export class ClaudeAdapter {
       throw new Error("Cannot resume without an agent session ID");
     }
     const args = ["-p", prompt, "--output-format", "stream-json", "--verbose", "--resume", this.agentSessionId];
-    this.appendPermissionArgs(args);
-    return args;
-  }
-
-  private appendPermissionArgs(args: string[]): void {
-    if (this.permissionMode !== "default") {
-      args.push("--permission-mode", this.permissionMode);
-    }
-    if (this.allowedTools.length > 0) {
-      args.push("--allowedTools", ...this.allowedTools);
-    }
     for (const dir of this.additionalDirs) {
       args.push("--add-dir", dir);
     }
+    return args;
   }
 
-  /**
-   * Parse a single NDJSON line into zero or one event.
-   * For lines that produce multiple events, use parseLines() instead.
-   */
   parseLine(line: Record<string, unknown>): AgentEvent | null {
     const events = this.parseLines([line]);
     return events.length > 0 ? events[0] : null;
   }
 
-  /**
-   * Parse one or more NDJSON lines into events.
-   * A single line can produce multiple events (e.g., assistant message
-   * with tool_use blocks yields one tool_use_start per block plus message_complete).
-   */
   parseLines(lines: Record<string, unknown>[]): AgentEvent[] {
     const events: AgentEvent[] = [];
     for (const line of lines) {
@@ -94,11 +69,6 @@ export class ClaudeAdapter {
           if (summary) {
             events.push(this.makeEvent("tool_use_summary", { summary }));
           }
-          break;
-        }
-        case "control_request": {
-          const event = this.parseControlRequest(line);
-          if (event) events.push(event);
           break;
         }
         case "result": {
@@ -202,7 +172,6 @@ export class ClaudeAdapter {
     const content = message.content as Array<Record<string, unknown>>;
     const events: AgentEvent[] = [];
 
-    // Emit tool_use_start for each tool_use block
     for (const block of content) {
       if (block.type === "tool_use") {
         events.push(
@@ -215,7 +184,6 @@ export class ClaudeAdapter {
       }
     }
 
-    // Always emit message_complete with full content
     events.push(
       this.makeEvent("message_complete", {
         content: message.content,
@@ -245,7 +213,6 @@ export class ClaudeAdapter {
           }),
         );
 
-        // Detect directory permission denials
         const deniedEvent = this.detectDirectoryPermissionDenied(toolResultContent);
         if (deniedEvent) events.push(deniedEvent);
       }
@@ -258,18 +225,6 @@ export class ClaudeAdapter {
     const match = content.match(/requested permissions to (?:read|write) from (.+?)(?:,|$)/);
     if (!match) return null;
     return this.makeEvent("directory_permission_denied", { path: match[1].trim() });
-  }
-
-  private parseControlRequest(line: Record<string, unknown>): AgentEvent | null {
-    const requestId = line.request_id as string;
-    const request = line.request as Record<string, unknown> | undefined;
-    if (!request || request.subtype !== "can_use_tool") return null;
-
-    return this.makeEvent("permission_request", {
-      requestId,
-      toolName: request.tool_name as string,
-      toolInput: request.input as Record<string, unknown>,
-    });
   }
 
   private parseResultMessage(line: Record<string, unknown>): AgentEvent {

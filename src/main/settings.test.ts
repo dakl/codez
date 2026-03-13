@@ -94,16 +94,6 @@ describe("agentConfigs round-trip", () => {
     expect(settings.agentConfigs?.claude?.defaultPermissions).toEqual(allowedTools);
   });
 
-  it("persists permissionMode alongside agentConfigs", () => {
-    writeSettings(settingsPath, {
-      permissionMode: "acceptEdits",
-      agentConfigs: { claude: { defaultPermissions: ["Edit"] } },
-    });
-    const settings = readSettings(settingsPath);
-    expect(settings.permissionMode).toBe("acceptEdits");
-    expect(settings.agentConfigs?.claude?.defaultPermissions).toEqual(["Edit"]);
-  });
-
   it("merges agentConfigs without clobbering other settings", () => {
     writeSettings(settingsPath, { voiceEnabled: true, theme: "midnight" });
     writeSettings(settingsPath, {
