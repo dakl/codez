@@ -1,8 +1,8 @@
+import type { AgentType } from "@shared/agent-types";
 import { FitAddon } from "@xterm/addon-fit";
-import { Terminal, type ITheme } from "@xterm/xterm";
+import { type ITheme, Terminal } from "@xterm/xterm";
 import "@xterm/xterm/css/xterm.css";
 import { useEffect, useRef } from "react";
-import type { AgentType } from "@shared/agent-types";
 import { useThemeStore } from "../../stores/themeStore";
 import { getThemeById, type ThemeDefinition } from "../../themes";
 
@@ -79,6 +79,7 @@ export function TerminalView({ sessionId, agentType, worktreePath, isActive }: T
   // Initialize terminal once on mount.
   // Defer terminal.open() to a RAF so React strict mode's first mount/unmount
   // cycle completes before xterm starts its internal animation callbacks.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: activeThemeId excluded — theme updates handled by separate effect
   useEffect(() => {
     if (!containerRef.current || initializedRef.current) return;
     initializedRef.current = true;
@@ -124,10 +125,13 @@ export function TerminalView({ sessionId, agentType, worktreePath, isActive }: T
 
       // Intercept Shift+Enter to send newline instead of carriage return.
       // Claude Code uses Shift+Enter for multi-line input.
+      // Must block both keydown and keypress to prevent xterm sending \r.
       terminal.attachCustomKeyEventHandler((event) => {
-        if (event.type === "keydown" && event.key === "Enter" && event.shiftKey) {
-          window.electronAPI.ptyInput(sessionId, "\n");
-          return false; // prevent xterm from also sending \r
+        if (event.key === "Enter" && event.shiftKey) {
+          if (event.type === "keydown") {
+            window.electronAPI.ptyInput(sessionId, "\n");
+          }
+          return false;
         }
         return true;
       });
@@ -192,7 +196,7 @@ export function TerminalView({ sessionId, agentType, worktreePath, isActive }: T
     terminalRef.current.options.theme = buildTerminalTheme(appTheme);
   }, [activeThemeId]);
 
-  // Re-fit, flush pending writes, and focus when becoming active
+  // Re-fit, flush pending writes, scroll to bottom, and focus when becoming active
   useEffect(() => {
     if (isActive && terminalRef.current) {
       // Flush any data that arrived while hidden
@@ -201,12 +205,14 @@ export function TerminalView({ sessionId, agentType, worktreePath, isActive }: T
         pendingWritesRef.current = [];
         terminalRef.current.write(pending);
       }
+      terminalRef.current.scrollToBottom();
       requestAnimationFrame(() => {
         try {
           fitAddonRef.current?.fit();
         } catch {
           // fit() can throw during initialization
         }
+        terminalRef.current?.scrollToBottom();
         terminalRef.current?.focus();
       });
     }
