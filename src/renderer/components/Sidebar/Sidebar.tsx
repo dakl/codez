@@ -22,7 +22,6 @@ export function Sidebar() {
 
   const [archiveOpen, setArchiveOpen] = useState(false);
   const [metaHeld, setMetaHeld] = useState(false);
-  const [repoPicker, setRepoPicker] = useState(false);
   const repoPickerRef = useRef<HTMLDivElement>(null);
 
   // Cmd+1…9 to jump to sessions
@@ -74,44 +73,19 @@ export function Sidebar() {
     };
   }, []);
 
-  // Close repo picker on outside click
-  useEffect(() => {
-    if (!repoPicker) return;
-    const handleClick = (e: MouseEvent) => {
-      if (repoPickerRef.current && !repoPickerRef.current.contains(e.target as Node)) {
-        setRepoPicker(false);
-      }
-    };
-    document.addEventListener("mousedown", handleClick);
-    return () => document.removeEventListener("mousedown", handleClick);
-  }, [repoPicker]);
-
-  const handleNewSession = useCallback(
-    async (repoPath: string) => {
-      setRepoPicker(false);
-      await createSession(repoPath, "claude");
-    },
-    [createSession],
-  );
-
-  const handleNewSessionClick = useCallback(() => {
-    if (repos.length === 0) {
-      addRepoViaDialog();
-      return;
+  const handleNewSessionClick = useCallback(async () => {
+    const repo = await addRepoViaDialog();
+    if (repo) {
+      await createSession(repo.path, "claude");
     }
-    if (repos.length === 1) {
-      handleNewSession(repos[0].path);
-      return;
-    }
-    setRepoPicker((prev) => !prev);
-  }, [repos, handleNewSession, addRepoViaDialog]);
+  }, [addRepoViaDialog, createSession]);
 
   return (
     <aside className="w-60 border-r border-white/[0.06] bg-transparent flex flex-col">
       {/* Draggable title bar + header */}
       <div className="h-12 flex items-center px-4 [-webkit-app-region:drag]">
         <span className="text-[13px] font-medium text-text-muted ml-16 flex-1">Codez</span>
-        <div className="relative [-webkit-app-region:no-drag]" ref={repoPickerRef}>
+        <div className="[-webkit-app-region:no-drag]" ref={repoPickerRef}>
           <button
             type="button"
             onClick={handleNewSessionClick}
@@ -120,33 +94,6 @@ export function Sidebar() {
           >
             <PlusIcon />
           </button>
-
-          {/* Repo picker dropdown */}
-          {repoPicker && repos.length > 1 && (
-            <div className="absolute right-0 top-8 w-52 bg-elevated border border-border rounded-lg shadow-xl py-1 z-50">
-              {repos.map((repo) => (
-                <button
-                  key={repo.path}
-                  type="button"
-                  onClick={() => handleNewSession(repo.path)}
-                  className="w-full text-left px-3 py-1.5 text-[13px] text-text-secondary hover:bg-white/10 hover:text-text-primary transition-colors truncate"
-                >
-                  {repo.name}
-                </button>
-              ))}
-              <div className="border-t border-border my-1" />
-              <button
-                type="button"
-                onClick={() => {
-                  setRepoPicker(false);
-                  addRepoViaDialog();
-                }}
-                className="w-full text-left px-3 py-1.5 text-[13px] text-text-muted hover:text-text-primary transition-colors"
-              >
-                Add folder...
-              </button>
-            </div>
-          )}
         </div>
       </div>
 
