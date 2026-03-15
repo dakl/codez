@@ -1,8 +1,10 @@
+import { closestCenter, DndContext, type DragEndEvent, PointerSensor, useSensor, useSensors } from "@dnd-kit/core";
+import { SortableContext, useSortable, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useSessionShortcuts } from "../../hooks/useChordShortcuts";
 import { useRepoStore } from "../../stores/repoStore";
 import { useSessionStore } from "../../stores/sessionStore";
-import { SessionListItem } from "./SessionListItem";
+import { SessionListItem, type SessionListItemProps } from "./SessionListItem";
 
 export function Sidebar() {
   const sessions = useSessionStore((state) => state.sessions);
@@ -20,9 +22,26 @@ export function Sidebar() {
   const loadRepos = useRepoStore((state) => state.loadRepos);
   const addRepoViaDialog = useRepoStore((state) => state.addRepoViaDialog);
 
+  const reorderSessions = useSessionStore((state) => state.reorderSessions);
+
   const [archiveOpen, setArchiveOpen] = useState(false);
   const [metaHeld, setMetaHeld] = useState(false);
   const repoPickerRef = useRef<HTMLDivElement>(null);
+
+  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }));
+
+  const handleDragEnd = useCallback(
+    (event: DragEndEvent) => {
+      const { active, over } = event;
+      if (!over || active.id === over.id) return;
+      const activeIndex = sessions.findIndex((s) => s.id === active.id);
+      const overIndex = sessions.findIndex((s) => s.id === over.id);
+      if (activeIndex !== -1 && overIndex !== -1) {
+        reorderSessions(activeIndex, overIndex);
+      }
+    },
+    [sessions, reorderSessions],
+  );
 
   // Cmd+1…9 to jump to sessions
   useSessionShortcuts(sessions, setActiveSession);
@@ -97,7 +116,7 @@ export function Sidebar() {
         </div>
       </div>
 
-      {/* Session list — flat, sorted by recency */}
+      {/* Session list — sorted by user-defined order */}
       <div className="flex-1 overflow-y-auto px-1.5 py-1 space-y-0.5">
         {sessions.length === 0 ? (
           <div className="flex items-center justify-center h-32">
@@ -106,17 +125,21 @@ export function Sidebar() {
             </p>
           </div>
         ) : (
-          sessions.map((session, index) => (
-            <SessionListItem
-              key={session.id}
-              session={session}
-              isActive={session.id === activeSessionId}
-              onClick={() => setActiveSession(session.id)}
-              onArchive={() => archiveSession(session.id)}
-              branchName={branches.get(session.repoPath)}
-              shortcutNumber={metaHeld && index < 9 ? index + 1 : null}
-            />
-          ))
+          <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+            <SortableContext items={sessions.map((s) => s.id)} strategy={verticalListSortingStrategy}>
+              {sessions.map((session, index) => (
+                <SortableSessionItem
+                  key={session.id}
+                  session={session}
+                  isActive={session.id === activeSessionId}
+                  onClick={() => setActiveSession(session.id)}
+                  onArchive={() => archiveSession(session.id)}
+                  branchName={branches.get(session.repoPath)}
+                  shortcutNumber={metaHeld && index < 9 ? index + 1 : null}
+                />
+              ))}
+            </SortableContext>
+          </DndContext>
         )}
 
         {/* Add folder link — only when no repos exist */}
@@ -162,6 +185,11 @@ export function Sidebar() {
       )}
     </aside>
   );
+}
+
+function SortableSessionItem(props: Omit<SessionListItemProps, "sortableProps">) {
+  const sortable = useSortable({ id: props.session.id });
+  return <SessionListItem {...props} sortableProps={sortable} />;
 }
 
 function PlusIcon() {

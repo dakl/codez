@@ -1,6 +1,6 @@
 import Database from "better-sqlite3";
 
-export const SCHEMA_VERSION = 2;
+export const SCHEMA_VERSION = 3;
 
 const SCHEMA = `
   CREATE TABLE IF NOT EXISTS repos (
@@ -18,7 +18,8 @@ const SCHEMA = `
     status TEXT NOT NULL DEFAULT 'idle',
     name TEXT NOT NULL,
     created_at TEXT NOT NULL DEFAULT (datetime('now')),
-    last_active_at TEXT NOT NULL DEFAULT (datetime('now'))
+    last_active_at TEXT NOT NULL DEFAULT (datetime('now')),
+    sort_order INTEGER NOT NULL DEFAULT 0
   );
 
   CREATE TABLE IF NOT EXISTS messages (
@@ -41,6 +42,7 @@ const SCHEMA = `
 
 const MIGRATIONS: Record<number, string> = {
   2: "ALTER TABLE messages ADD COLUMN thinking TEXT",
+  3: "ALTER TABLE sessions ADD COLUMN sort_order INTEGER NOT NULL DEFAULT 0",
 };
 
 export function createDatabase(dbPath: string): Database.Database {
@@ -62,6 +64,17 @@ export function createDatabase(dbPath: string): Database.Database {
         // Column may already exist if schema was created fresh
       }
     }
+  }
+
+  // Backfill sort_order for existing sessions (all zeros after migration)
+  if (currentVersion < 3) {
+    db.exec(`
+      UPDATE sessions SET sort_order = (
+        SELECT COUNT(*) FROM sessions s2
+        WHERE s2.last_active_at > sessions.last_active_at
+           OR (s2.last_active_at = sessions.last_active_at AND s2.rowid < sessions.rowid)
+      )
+    `);
   }
 
   db.pragma(`user_version = ${SCHEMA_VERSION}`);

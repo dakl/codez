@@ -12,6 +12,7 @@ interface SessionRow {
   name: string;
   created_at: string;
   last_active_at: string;
+  sort_order: number;
 }
 
 function rowToSession(row: SessionRow): SessionInfo {
@@ -37,13 +38,12 @@ interface CreateSessionParams {
 
 export function createSession(db: Database.Database, params: CreateSessionParams): SessionInfo {
   const id = crypto.randomUUID();
-  db.prepare("INSERT INTO sessions (id, repo_path, worktree_path, agent_type, name) VALUES (?, ?, ?, ?, ?)").run(
-    id,
-    params.repoPath,
-    params.worktreePath,
-    params.agentType,
-    params.name,
-  );
+  const maxOrder = (
+    db.prepare("SELECT COALESCE(MAX(sort_order), -1) as max_order FROM sessions").get() as { max_order: number }
+  ).max_order;
+  db.prepare(
+    "INSERT INTO sessions (id, repo_path, worktree_path, agent_type, name, sort_order) VALUES (?, ?, ?, ?, ?, ?)",
+  ).run(id, params.repoPath, params.worktreePath, params.agentType, params.name, maxOrder + 1);
   return getSession(db, id) as SessionInfo;
 }
 
@@ -55,12 +55,14 @@ export function getSession(db: Database.Database, sessionId: string): SessionInf
 export function listSessions(db: Database.Database, repoPath?: string): SessionInfo[] {
   if (repoPath) {
     const rows = db
-      .prepare("SELECT * FROM sessions WHERE repo_path = ? AND status != 'archived' ORDER BY last_active_at DESC")
+      .prepare(
+        "SELECT * FROM sessions WHERE repo_path = ? AND status != 'archived' ORDER BY sort_order ASC, last_active_at DESC",
+      )
       .all(repoPath) as SessionRow[];
     return rows.map(rowToSession);
   }
   const rows = db
-    .prepare("SELECT * FROM sessions WHERE status != 'archived' ORDER BY last_active_at DESC")
+    .prepare("SELECT * FROM sessions WHERE status != 'archived' ORDER BY sort_order ASC, last_active_at DESC")
     .all() as SessionRow[];
   return rows.map(rowToSession);
 }
@@ -78,7 +80,23 @@ export function archiveSession(db: Database.Database, sessionId: string): void {
 }
 
 export function restoreSession(db: Database.Database, sessionId: string): void {
-  db.prepare("UPDATE sessions SET status = 'idle', last_active_at = datetime('now') WHERE id = ?").run(sessionId);
+  const maxOrder = (
+    db.prepare("SELECT COALESCE(MAX(sort_order), -1) as max_order FROM sessions").get() as { max_order: number }
+  ).max_order;
+  db.prepare("UPDATE sessions SET status = 'idle', last_active_at = datetime('now'), sort_order = ? WHERE id = ?").run(
+    maxOrder + 1,
+    sessionId,
+  );
+}
+
+export function reorderSessions(db: Database.Database, sessionIds: string[]): void {
+  const stmt = db.prepare("UPDATE sessions SET sort_order = ? WHERE id = ?");
+  const transaction = db.transaction((ids: string[]) => {
+    for (let i = 0; i < ids.length; i++) {
+      stmt.run(i, ids[i]);
+    }
+  });
+  transaction(sessionIds);
 }
 
 export function listArchivedSessions(db: Database.Database, repoPath?: string): SessionInfo[] {

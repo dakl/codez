@@ -9,6 +9,7 @@ import {
   getSession,
   listArchivedSessions,
   listSessions,
+  reorderSessions,
   restoreSession,
   updateAgentSessionId,
   updateSessionStatus,
@@ -221,5 +222,100 @@ describe("deleteSession", () => {
     });
     deleteSession(db, session.id);
     expect(getSession(db, session.id)).toBeNull();
+  });
+});
+
+describe("sort_order", () => {
+  it("assigns incrementing sort_order to new sessions", () => {
+    const s1 = createSession(db, {
+      repoPath: "/Users/dan/project",
+      worktreePath: "/tmp/a",
+      agentType: "claude",
+      name: "first",
+    });
+    const s2 = createSession(db, {
+      repoPath: "/Users/dan/project",
+      worktreePath: "/tmp/b",
+      agentType: "claude",
+      name: "second",
+    });
+    const s3 = createSession(db, {
+      repoPath: "/Users/dan/project",
+      worktreePath: "/tmp/c",
+      agentType: "claude",
+      name: "third",
+    });
+
+    const sessions = listSessions(db);
+    expect(sessions.map((s) => s.id)).toEqual([s1.id, s2.id, s3.id]);
+  });
+
+  it("listSessions returns sessions in sort_order ASC", () => {
+    const s1 = createSession(db, {
+      repoPath: "/Users/dan/project",
+      worktreePath: "/tmp/a",
+      agentType: "claude",
+      name: "first",
+    });
+    const s2 = createSession(db, {
+      repoPath: "/Users/dan/project",
+      worktreePath: "/tmp/b",
+      agentType: "claude",
+      name: "second",
+    });
+    const s3 = createSession(db, {
+      repoPath: "/Users/dan/project",
+      worktreePath: "/tmp/c",
+      agentType: "claude",
+      name: "third",
+    });
+
+    // Reorder to: third, first, second
+    reorderSessions(db, [s3.id, s1.id, s2.id]);
+
+    const sessions = listSessions(db);
+    expect(sessions.map((s) => s.name)).toEqual(["third", "first", "second"]);
+  });
+
+  it("reorderSessions assigns sort_order matching array index", () => {
+    const s1 = createSession(db, {
+      repoPath: "/Users/dan/project",
+      worktreePath: "/tmp/a",
+      agentType: "claude",
+      name: "a",
+    });
+    const s2 = createSession(db, {
+      repoPath: "/Users/dan/project",
+      worktreePath: "/tmp/b",
+      agentType: "claude",
+      name: "b",
+    });
+
+    reorderSessions(db, [s2.id, s1.id]);
+
+    const sessions = listSessions(db);
+    expect(sessions[0].id).toBe(s2.id);
+    expect(sessions[1].id).toBe(s1.id);
+  });
+
+  it("restoreSession places session at the bottom (highest sort_order)", () => {
+    createSession(db, {
+      repoPath: "/Users/dan/project",
+      worktreePath: "/tmp/a",
+      agentType: "claude",
+      name: "stays",
+    });
+    const s2 = createSession(db, {
+      repoPath: "/Users/dan/project",
+      worktreePath: "/tmp/b",
+      agentType: "claude",
+      name: "archived",
+    });
+
+    archiveSession(db, s2.id);
+    restoreSession(db, s2.id);
+
+    const sessions = listSessions(db);
+    expect(sessions[sessions.length - 1].id).toBe(s2.id);
   });
 });

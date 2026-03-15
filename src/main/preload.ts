@@ -12,6 +12,7 @@ const CH = {
   SESSIONS_RESTORE: "sessions:restore",
   SESSIONS_LIST: "sessions:list",
   SESSIONS_LIST_ARCHIVED: "sessions:listArchived",
+  SESSIONS_REORDER: "sessions:reorder",
   SESSIONS_GET_MESSAGES: "sessions:getMessages",
   REPOS_ADD: "repos:add",
   REPOS_REMOVE: "repos:remove",
@@ -60,6 +61,7 @@ const api = {
   restoreSession: (sessionId: string) => ipcRenderer.invoke(CH.SESSIONS_RESTORE, sessionId),
   listSessions: (repoPath?: string) => ipcRenderer.invoke(CH.SESSIONS_LIST, repoPath),
   listArchivedSessions: (repoPath?: string) => ipcRenderer.invoke(CH.SESSIONS_LIST_ARCHIVED, repoPath),
+  reorderSessions: (sessionIds: string[]) => ipcRenderer.invoke(CH.SESSIONS_REORDER, sessionIds),
   getSessionMessages: (sessionId: string) => ipcRenderer.invoke(CH.SESSIONS_GET_MESSAGES, sessionId),
 
   // Repos

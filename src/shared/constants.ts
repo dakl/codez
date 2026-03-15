@@ -9,6 +9,7 @@ export const IPC = {
   SESSIONS_RESTORE: "sessions:restore",
   SESSIONS_LIST: "sessions:list",
   SESSIONS_LIST_ARCHIVED: "sessions:listArchived",
+  SESSIONS_REORDER: "sessions:reorder",
   SESSIONS_GET_MESSAGES: "sessions:getMessages",
   // Repos
   REPOS_ADD: "repos:add",
