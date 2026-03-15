@@ -80,3 +80,17 @@ body {
     opacity: 1;
   }
 }
+
+@keyframes ellipsis-dot {
+  0%,
+  20% {
+    opacity: 0;
+  }
+  40% {
+    opacity: 1;
+  }
+  60%,
+  100% {
+    opacity: 0;
+  }
+}

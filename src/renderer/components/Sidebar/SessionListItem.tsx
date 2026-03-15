@@ -1,6 +1,7 @@
+import type { useSortable } from "@dnd-kit/sortable";
 import type { SessionInfo } from "@shared/agent-types";
 
-interface SessionListItemProps {
+export interface SessionListItemProps {
   session: SessionInfo;
   isActive: boolean;
   onClick: () => void;
@@ -9,6 +10,7 @@ interface SessionListItemProps {
   onDelete?: () => void;
   branchName?: string | null;
   shortcutNumber?: number | null;
+  sortableProps?: ReturnType<typeof useSortable>;
 }
 
 const statusDotColor: Record<string, string> = {
@@ -34,13 +36,29 @@ export function SessionListItem({
   onDelete,
   branchName,
   shortcutNumber,
+  sortableProps,
 }: SessionListItemProps) {
   const isArchived = session.status === "archived";
   const dotColor = statusDotColor[session.status] ?? "bg-text-muted/20";
   const folder = folderName(session.repoPath);
 
+  const sortableStyle: React.CSSProperties = sortableProps
+    ? {
+        transform: sortableProps.transform
+          ? `translate3d(${sortableProps.transform.x}px, ${sortableProps.transform.y}px, 0)`
+          : undefined,
+        transition: sortableProps.transition ?? undefined,
+        opacity: sortableProps.isDragging ? 0.5 : undefined,
+        zIndex: sortableProps.isDragging ? 10 : undefined,
+      }
+    : {};
+
   return (
     <div
+      ref={sortableProps?.setNodeRef}
+      style={sortableStyle}
+      {...sortableProps?.attributes}
+      {...sortableProps?.listeners}
       className={`group relative flex items-center gap-2.5 px-3 py-2 rounded-lg transition-colors cursor-default ${
         isActive
           ? "bg-accent/20 text-text-primary ring-1 ring-accent/30"
@@ -70,6 +88,15 @@ export function SessionListItem({
           <div className="text-[11px] leading-tight text-text-muted truncate mt-0.5 font-mono">{branchName}</div>
         )}
       </div>
+
+      {/* Animated ellipsis for running sessions — hidden on hover so actions show */}
+      {session.status === "running" && (
+        <div className="flex items-center gap-[2px] shrink-0 group-hover:hidden">
+          <AnimatedEllipsisDot delay="0s" />
+          <AnimatedEllipsisDot delay="0.2s" />
+          <AnimatedEllipsisDot delay="0.4s" />
+        </div>
+      )}
 
       {/* Hover actions */}
       <div className="hidden group-hover:flex items-center gap-0.5 shrink-0">
@@ -121,6 +148,15 @@ function ActionButton({
     >
       {children}
     </button>
+  );
+}
+
+function AnimatedEllipsisDot({ delay }: { delay: string }) {
+  return (
+    <span
+      className="w-[4px] h-[4px] rounded-full bg-success opacity-0"
+      style={{ animation: "ellipsis-dot 1.4s infinite", animationDelay: delay }}
+    />
   );
 }
 
