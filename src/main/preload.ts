@@ -13,11 +13,11 @@ const CH = {
   SESSIONS_LIST: "sessions:list",
   SESSIONS_LIST_ARCHIVED: "sessions:listArchived",
   SESSIONS_GET_MESSAGES: "sessions:getMessages",
-  SESSIONS_RESPOND_PERMISSION: "sessions:respondPermission",
   REPOS_ADD: "repos:add",
   REPOS_REMOVE: "repos:remove",
   REPOS_LIST: "repos:list",
   REPOS_SELECT_DIALOG: "repos:selectDialog",
+  REPOS_GET_BRANCH: "repos:getBranch",
   WORKTREES_LIST: "worktrees:list",
   WORKTREES_CLEANUP: "worktrees:cleanup",
   VOICE_START_RECORDING: "voice:startRecording",
@@ -28,11 +28,15 @@ const CH = {
   SETTINGS_SAVE_SHORTCUTS: "settings:saveShortcuts",
   SETTINGS_GET: "settings:get",
   SETTINGS_SAVE: "settings:save",
-  SETTINGS_GET_MISTRAL_API_KEY: "settings:getMistralApiKey",
-  SETTINGS_SET_MISTRAL_API_KEY: "settings:setMistralApiKey",
+  PTY_CREATE: "pty:create",
+  PTY_INPUT: "pty:input",
+  PTY_RESIZE: "pty:resize",
+  PTY_KILL: "pty:kill",
   APP_GET_INFO: "app:getInfo",
   EVENT_AGENT: "event:agent",
   EVENT_SESSION_STATUS: "event:sessionStatus",
+  EVENT_PTY_DATA: "event:ptyData",
+  EVENT_PTY_EXIT: "event:ptyExit",
 } as const;
 
 const api = {
@@ -48,18 +52,13 @@ const api = {
   listSessions: (repoPath?: string) => ipcRenderer.invoke(CH.SESSIONS_LIST, repoPath),
   listArchivedSessions: (repoPath?: string) => ipcRenderer.invoke(CH.SESSIONS_LIST_ARCHIVED, repoPath),
   getSessionMessages: (sessionId: string) => ipcRenderer.invoke(CH.SESSIONS_GET_MESSAGES, sessionId),
-  respondPermission: (
-    sessionId: string,
-    requestId: string,
-    approved: boolean,
-    updatedInput?: Record<string, unknown>,
-  ) => ipcRenderer.invoke(CH.SESSIONS_RESPOND_PERMISSION, sessionId, requestId, approved, updatedInput),
 
   // Repos
   addRepo: (repoPath: string) => ipcRenderer.invoke(CH.REPOS_ADD, repoPath),
   removeRepo: (repoPath: string) => ipcRenderer.invoke(CH.REPOS_REMOVE, repoPath),
   listRepos: () => ipcRenderer.invoke(CH.REPOS_LIST),
   selectRepoDialog: () => ipcRenderer.invoke(CH.REPOS_SELECT_DIALOG),
+  getRepoBranch: (repoPath: string) => ipcRenderer.invoke(CH.REPOS_GET_BRANCH, repoPath),
 
   // Worktrees
   listWorktrees: (repoPath: string) => ipcRenderer.invoke(CH.WORKTREES_LIST, repoPath),
@@ -79,8 +78,13 @@ const api = {
     ipcRenderer.invoke(CH.SETTINGS_SAVE_SHORTCUTS, overrides),
   getSettings: () => ipcRenderer.invoke(CH.SETTINGS_GET),
   saveSettings: (settings: Record<string, unknown>) => ipcRenderer.invoke(CH.SETTINGS_SAVE, settings),
-  getMistralApiKey: () => ipcRenderer.invoke(CH.SETTINGS_GET_MISTRAL_API_KEY),
-  setMistralApiKey: (apiKey: string) => ipcRenderer.invoke(CH.SETTINGS_SET_MISTRAL_API_KEY, apiKey),
+  // PTY
+  ptyCreate: (sessionId: string, agentType: string, worktreePath: string, cols: number, rows: number) =>
+    ipcRenderer.invoke(CH.PTY_CREATE, sessionId, agentType, worktreePath, cols, rows),
+  ptyInput: (sessionId: string, data: string) => ipcRenderer.invoke(CH.PTY_INPUT, sessionId, data),
+  ptyResize: (sessionId: string, cols: number, rows: number) =>
+    ipcRenderer.invoke(CH.PTY_RESIZE, sessionId, cols, rows),
+  ptyKill: (sessionId: string) => ipcRenderer.invoke(CH.PTY_KILL, sessionId),
 
   // App
   getAppInfo: () => ipcRenderer.invoke(CH.APP_GET_INFO),
@@ -95,6 +99,16 @@ const api = {
     const handler = (_event: unknown, sessionId: string, status: string) => callback(sessionId, status);
     ipcRenderer.on(CH.EVENT_SESSION_STATUS, handler);
     return () => ipcRenderer.removeListener(CH.EVENT_SESSION_STATUS, handler);
+  },
+  onPtyData: (callback: (sessionId: string, data: string) => void) => {
+    const handler = (_event: unknown, sessionId: string, data: string) => callback(sessionId, data);
+    ipcRenderer.on(CH.EVENT_PTY_DATA, handler);
+    return () => ipcRenderer.removeListener(CH.EVENT_PTY_DATA, handler);
+  },
+  onPtyExit: (callback: (sessionId: string, exitCode: number) => void) => {
+    const handler = (_event: unknown, sessionId: string, exitCode: number) => callback(sessionId, exitCode);
+    ipcRenderer.on(CH.EVENT_PTY_EXIT, handler);
+    return () => ipcRenderer.removeListener(CH.EVENT_PTY_EXIT, handler);
   },
 };
 

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { isSettingsShortcut } from "./useGlobalShortcuts";
+import { isNewSessionShortcut, isSettingsShortcut } from "./useGlobalShortcuts";
 
 describe("isSettingsShortcut", () => {
   it("returns true for Cmd+,", () => {
@@ -25,5 +25,22 @@ describe("isSettingsShortcut", () => {
   it("returns false when alt is also held", () => {
     const event = { key: ",", metaKey: true, ctrlKey: false, shiftKey: false, altKey: true };
     expect(isSettingsShortcut(event as KeyboardEvent)).toBe(false);
+  });
+});
+
+describe("isNewSessionShortcut", () => {
+  it("returns true for Cmd+N", () => {
+    const event = { key: "n", metaKey: true, ctrlKey: false, shiftKey: false, altKey: false };
+    expect(isNewSessionShortcut(event as KeyboardEvent)).toBe(true);
+  });
+
+  it("returns false without meta", () => {
+    const event = { key: "n", metaKey: false, ctrlKey: false, shiftKey: false, altKey: false };
+    expect(isNewSessionShortcut(event as KeyboardEvent)).toBe(false);
+  });
+
+  it("returns false for Cmd+Shift+N", () => {
+    const event = { key: "n", metaKey: true, ctrlKey: false, shiftKey: true, altKey: false };
+    expect(isNewSessionShortcut(event as KeyboardEvent)).toBe(false);
   });
 });

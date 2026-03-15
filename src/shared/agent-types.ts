@@ -1,11 +1,10 @@
-export type AgentType = "claude" | "mistral" | "gemini";
+export type AgentType = "claude" | "gemini";
 
 export type SessionStatus = "idle" | "running" | "waiting_for_input" | "paused" | "completed" | "error" | "archived";
 
 export interface AgentConfig {
   type: AgentType;
   binaryPath: string;
-  defaultPermissions: string[];
   extraFlags: string[];
   apiKey?: string;
 }
@@ -35,7 +34,6 @@ export type AgentEventType =
   | "session_start"
   | "session_end"
   | "waiting_for_input"
-  | "permission_request"
   | "directory_permission_denied"
   | "error";
 
@@ -56,12 +54,6 @@ export interface AgentMessage {
   isError?: boolean;
   thinking?: string;
   timestamp: string;
-}
-
-export interface PermissionRequestData {
-  requestId: string;
-  toolName: string;
-  toolInput: Record<string, unknown>;
 }
 
 export interface ChangedFile {

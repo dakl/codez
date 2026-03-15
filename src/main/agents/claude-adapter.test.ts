@@ -44,42 +44,6 @@ describe("ClaudeAdapter", () => {
       expect(args).not.toContain("--resume");
       expect(args).not.toContain("--continue");
     });
-
-    it("includes --allowedTools when allowedTools are provided", () => {
-      const adapterWithTools = new ClaudeAdapter({
-        sessionId: "test-session-1",
-        worktreePath: "/tmp/worktree",
-        allowedTools: ["Bash(git:*)", "Edit", "mcp__papershelf__*"],
-      });
-      const args = adapterWithTools.buildStartArgs("Hello");
-      expect(args).toContain("--allowedTools");
-      const toolsIndex = args.indexOf("--allowedTools");
-      expect(args[toolsIndex + 1]).toBe("Bash(git:*)");
-      expect(args[toolsIndex + 2]).toBe("Edit");
-      expect(args[toolsIndex + 3]).toBe("mcp__papershelf__*");
-    });
-
-    it("omits --allowedTools when none provided", () => {
-      const args = adapter.buildStartArgs("Hello");
-      expect(args).not.toContain("--allowedTools");
-    });
-
-    it("includes --permission-mode when not default", () => {
-      const adapterWithPerms = new ClaudeAdapter({
-        sessionId: "test-session-1",
-        worktreePath: "/tmp/worktree",
-        permissionMode: "acceptEdits",
-      });
-      const args = adapterWithPerms.buildStartArgs("Hello");
-      expect(args).toContain("--permission-mode");
-      const modeIndex = args.indexOf("--permission-mode");
-      expect(args[modeIndex + 1]).toBe("acceptEdits");
-    });
-
-    it("omits --permission-mode when default", () => {
-      const args = adapter.buildStartArgs("Hello");
-      expect(args).not.toContain("--permission-mode");
-    });
   });
 
   describe("buildResumeArgs", () => {
@@ -102,20 +66,6 @@ describe("ClaudeAdapter", () => {
       adapter.setAgentSessionId("claude-session-abc");
       const args = adapter.buildResumeArgs("Continue");
       expect(args).not.toContain("--session-id");
-    });
-
-    it("includes --allowedTools on resume when provided", () => {
-      const adapterWithTools = new ClaudeAdapter({
-        sessionId: "test-session-1",
-        worktreePath: "/tmp/worktree",
-        allowedTools: ["Edit", "Read"],
-      });
-      adapterWithTools.setAgentSessionId("claude-session-abc");
-      const args = adapterWithTools.buildResumeArgs("Continue");
-      expect(args).toContain("--allowedTools");
-      const toolsIndex = args.indexOf("--allowedTools");
-      expect(args[toolsIndex + 1]).toBe("Edit");
-      expect(args[toolsIndex + 2]).toBe("Read");
     });
   });
 
@@ -364,32 +314,6 @@ describe("ClaudeAdapter", () => {
       expect(event).toBeNull();
     });
 
-    it("maps control_request with can_use_tool to permission_request event", () => {
-      const event = adapter.parseLine({
-        type: "control_request",
-        request_id: "req_1_abc123",
-        request: {
-          subtype: "can_use_tool",
-          tool_name: "Bash",
-          input: { command: "git commit -m 'fix'" },
-        },
-      });
-      expect(event).not.toBeNull();
-      expect(event?.type).toBe("permission_request");
-      expect(event?.data.requestId).toBe("req_1_abc123");
-      expect(event?.data.toolName).toBe("Bash");
-      expect(event?.data.toolInput).toEqual({ command: "git commit -m 'fix'" });
-    });
-
-    it("returns null for control_request with unknown subtype", () => {
-      const event = adapter.parseLine({
-        type: "control_request",
-        request_id: "req_2",
-        request: { subtype: "unknown_subtype" },
-      });
-      expect(event).toBeNull();
-    });
-
     it("returns null for non-delta stream events we don't map", () => {
       const event = adapter.parseLine({
         type: "stream_event",
@@ -423,23 +347,6 @@ describe("ClaudeAdapter", () => {
       expect(types).toContain("tool_use_delta");
       expect(types).toContain("message_complete");
       expect(types).toContain("session_end");
-    });
-
-    it("parses permission request fixture into expected events", () => {
-      const lines = loadFixtureEvents("claude-stream-permission.ndjson");
-      const events = adapter.parseLines(lines);
-
-      const types = events.map((e) => e.type);
-      expect(types).toContain("session_start");
-      expect(types).toContain("tool_use_start");
-      expect(types).toContain("permission_request");
-      expect(types).toContain("tool_result");
-      expect(types).toContain("message_complete");
-      expect(types).toContain("session_end");
-
-      const permEvent = events.find((e) => e.type === "permission_request");
-      expect(permEvent.data.toolName).toBe("Bash");
-      expect(permEvent.data.requestId).toBe("req_1_abc");
     });
   });
 });

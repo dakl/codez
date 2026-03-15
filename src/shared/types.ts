@@ -1,20 +1,10 @@
-import type {
-  AgentConfig,
-  AgentEvent,
-  AgentMessage,
-  AgentType,
-  ChangedFile,
-  SessionInfo,
-  SessionStatus,
-} from "./agent-types";
+import type { AgentConfig, AgentEvent, AgentType, ChangedFile, SessionInfo, SessionStatus } from "./agent-types";
 
 export interface RepoInfo {
   path: string;
   name: string;
   lastUsed: string;
 }
-
-export type PermissionMode = "default" | "acceptEdits" | "bypassPermissions" | "plan";
 
 export type ThemeId = "midnight" | "ember" | "forest" | "snow" | "sand" | "dawn";
 
@@ -25,7 +15,6 @@ export interface AppSettings {
   whisperModel?: string;
   pushToTalkKey?: string;
   notificationSound?: boolean;
-  permissionMode?: PermissionMode;
   additionalDirs?: string[];
   agentConfigs?: Record<string, Partial<AgentConfig>>;
   theme?: ThemeId;
@@ -42,19 +31,13 @@ export interface ElectronAPI {
   restoreSession: (sessionId: string) => Promise<void>;
   listSessions: (repoPath?: string) => Promise<SessionInfo[]>;
   listArchivedSessions: (repoPath?: string) => Promise<SessionInfo[]>;
-  getSessionMessages: (sessionId: string) => Promise<AgentMessage[]>;
-  respondPermission: (
-    sessionId: string,
-    requestId: string,
-    approved: boolean,
-    updatedInput?: Record<string, unknown>,
-  ) => Promise<void>;
 
   // Repos
   addRepo: (path: string) => Promise<RepoInfo>;
   removeRepo: (path: string) => Promise<void>;
   listRepos: () => Promise<RepoInfo[]>;
   selectRepoDialog: () => Promise<RepoInfo | null>;
+  getRepoBranch: (repoPath: string) => Promise<string | null>;
 
   // Worktrees
   listWorktrees: (repoPath: string) => Promise<string[]>;
@@ -73,15 +56,26 @@ export interface ElectronAPI {
   saveShortcutOverrides: (overrides: Record<string, string>) => Promise<void>;
   getSettings: () => Promise<AppSettings>;
   saveSettings: (settings: Partial<AppSettings>) => Promise<void>;
-  getMistralApiKey: () => Promise<string | null>;
-  setMistralApiKey: (apiKey: string) => Promise<void>;
-
   // App
   getAppInfo: () => Promise<{ name: string; version: string }>;
+
+  // PTY
+  ptyCreate: (
+    sessionId: string,
+    agentType: AgentType,
+    worktreePath: string,
+    cols: number,
+    rows: number,
+  ) => Promise<void>;
+  ptyInput: (sessionId: string, data: string) => Promise<void>;
+  ptyResize: (sessionId: string, cols: number, rows: number) => Promise<void>;
+  ptyKill: (sessionId: string) => Promise<void>;
 
   // Events (main → renderer)
   onAgentEvent: (callback: (event: AgentEvent) => void) => () => void;
   onSessionStatusChanged: (callback: (sessionId: string, status: SessionStatus) => void) => () => void;
+  onPtyData: (callback: (sessionId: string, data: string) => void) => () => void;
+  onPtyExit: (callback: (sessionId: string, exitCode: number) => void) => () => void;
 }
 
 declare global {

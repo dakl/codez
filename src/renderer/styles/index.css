@@ -21,7 +21,7 @@
   --font-mono: "Geist Mono", ui-monospace, "SF Mono", monospace;
   /* Codez color palette — blue-tinted dark theme */
   --color-base: #0f1117;
-  --color-sidebar: #12141c;
+  --color-sidebar: transparent;
   --color-surface: #1a1d27;
   --color-surface-hover: #222638;
   --color-elevated: #262a3a;

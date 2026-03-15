@@ -1,5 +1,4 @@
 import { useEffect } from "react";
-import { MistralApiKeyDialog } from "./components/MistralApiKeyDialog";
 import { SessionView } from "./components/SessionView/SessionView";
 import { SettingsPanel } from "./components/SettingsPanel/SettingsPanel";
 import { Sidebar } from "./components/Sidebar/Sidebar";
@@ -8,31 +7,23 @@ import { useSessionStore } from "./stores/sessionStore";
 import { useThemeStore } from "./stores/themeStore";
 
 export function App() {
-  const handleAgentEvent = useSessionStore((state) => state.handleAgentEvent);
   const handleStatusChange = useSessionStore((state) => state.handleStatusChange);
   const loadTheme = useThemeStore((state) => state.loadTheme);
-  const mistralApiKeyDialogOpen = useThemeStore((state) => state.mistralApiKeyDialogOpen);
-  const _openMistralApiKeyDialog = useThemeStore((state) => state.openMistralApiKeyDialog);
-  const closeMistralApiKeyDialog = useThemeStore((state) => state.closeMistralApiKeyDialog);
-  const openSettings = useThemeStore((state) => state.toggleSettings);
 
   useGlobalShortcuts();
 
-  // Load persisted theme on mount
   useEffect(() => {
     loadTheme();
   }, [loadTheme]);
 
-  // Subscribe to main process events
+  // Subscribe to session status changes (driven by sideband detector)
   useEffect(() => {
     if (!window.electronAPI) return;
-    const unsubAgent = window.electronAPI.onAgentEvent(handleAgentEvent);
     const unsubStatus = window.electronAPI.onSessionStatusChanged(handleStatusChange);
     return () => {
-      unsubAgent();
       unsubStatus();
     };
-  }, [handleAgentEvent, handleStatusChange]);
+  }, [handleStatusChange]);
 
   return (
     <div className="flex h-screen select-none bg-base">
@@ -43,15 +34,6 @@ export function App() {
         <SessionView />
       </main>
       <SettingsPanel />
-      {mistralApiKeyDialogOpen && (
-        <MistralApiKeyDialog
-          onConfigure={() => {
-            closeMistralApiKeyDialog();
-            openSettings();
-          }}
-          onDismiss={closeMistralApiKeyDialog}
-        />
-      )}
     </div>
   );
 }

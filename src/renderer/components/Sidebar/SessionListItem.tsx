@@ -1,5 +1,4 @@
 import type { SessionInfo } from "@shared/agent-types";
-import { Tooltip } from "../Tooltip";
 
 interface SessionListItemProps {
   session: SessionInfo;
@@ -8,26 +7,45 @@ interface SessionListItemProps {
   onArchive?: () => void;
   onRestore?: () => void;
   onDelete?: () => void;
+  branchName?: string | null;
+  shortcutNumber?: number | null;
 }
 
-export function SessionListItem({ session, isActive, onClick, onArchive, onRestore, onDelete }: SessionListItemProps) {
-  const statusColor: Record<string, string> = {
-    running: "bg-success",
-    waiting_for_input: "bg-warning",
-    error: "bg-error",
-    completed: "bg-info",
-    idle: "bg-text-muted",
-    paused: "bg-text-muted",
-    archived: "bg-text-muted",
-  };
+const statusDotColor: Record<string, string> = {
+  running: "bg-success",
+  waiting_for_input: "bg-warning",
+  error: "bg-error",
+  completed: "bg-info",
+  idle: "bg-text-muted/40",
+  paused: "bg-text-muted/40",
+  archived: "bg-text-muted/20",
+};
 
+function folderName(repoPath: string): string {
+  return repoPath.split("/").pop() || repoPath;
+}
+
+export function SessionListItem({
+  session,
+  isActive,
+  onClick,
+  onArchive,
+  onRestore,
+  onDelete,
+  branchName,
+  shortcutNumber,
+}: SessionListItemProps) {
   const isArchived = session.status === "archived";
+  const dotColor = statusDotColor[session.status] ?? "bg-text-muted/20";
+  const folder = folderName(session.repoPath);
 
   return (
     <div
-      className={`group relative w-full text-left px-3 py-2 rounded-lg transition-colors cursor-pointer ${
-        isActive ? "bg-surface-hover text-text-primary" : "text-text-secondary hover:bg-surface hover:text-text-primary"
-      } ${isArchived ? "opacity-60" : ""}`}
+      className={`group relative flex items-center gap-2.5 px-3 py-2 rounded-lg transition-colors cursor-default ${
+        isActive
+          ? "bg-accent/20 text-text-primary ring-1 ring-accent/30"
+          : "text-text-secondary hover:bg-white/5 hover:text-text-primary"
+      } ${isArchived ? "opacity-50" : ""}`}
       onClick={onClick}
       onKeyDown={(e) => {
         if (e.key === "Enter" || e.key === " ") onClick();
@@ -35,74 +53,82 @@ export function SessionListItem({ session, isActive, onClick, onArchive, onResto
       role="button"
       tabIndex={0}
     >
-      <div className="flex items-center gap-2">
-        <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${statusColor[session.status] ?? "bg-text-muted"}`} />
-        <span className="text-sm truncate flex-1">{session.name}</span>
-        {session.status === "waiting_for_input" && (
-          <span className="text-[10px] text-warning font-medium">WAITING</span>
-        )}
+      {/* Shortcut badge — only visible when Cmd is held */}
+      {shortcutNumber != null && (
+        <span className="absolute left-1 top-1/2 -translate-y-1/2 w-5 h-5 flex items-center justify-center rounded bg-accent/80 text-[10px] font-semibold text-white shadow-sm">
+          {shortcutNumber}
+        </span>
+      )}
 
-        {/* Action buttons — visible on hover */}
-        <div className="hidden group-hover:flex items-center gap-0.5 ml-auto">
-          {isArchived ? (
-            <>
-              {onRestore && (
-                <Tooltip label="Restore session" position="above">
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onRestore();
-                    }}
-                    className="p-0.5 rounded text-text-muted hover:text-success transition-colors"
-                  >
-                    <RestoreIcon />
-                  </button>
-                </Tooltip>
-              )}
-              {onDelete && (
-                <Tooltip label="Delete permanently" position="above">
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onDelete();
-                    }}
-                    className="p-0.5 rounded text-text-muted hover:text-error transition-colors"
-                  >
-                    <TrashIcon />
-                  </button>
-                </Tooltip>
-              )}
-            </>
-          ) : (
-            onArchive && (
-              <Tooltip label="Archive session" position="above">
-                <button
-                  type="button"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onArchive();
-                  }}
-                  className="p-0.5 rounded text-text-muted hover:text-error transition-colors"
-                >
-                  <ArchiveIcon />
-                </button>
-              </Tooltip>
-            )
-          )}
-        </div>
+      {/* Status dot */}
+      <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${dotColor}`} />
+
+      {/* Text content */}
+      <div className="flex-1 min-w-0">
+        <div className="text-[13px] leading-tight truncate font-mono">{folder}</div>
+        {branchName && (
+          <div className="text-[11px] leading-tight text-text-muted truncate mt-0.5 font-mono">{branchName}</div>
+        )}
       </div>
-      <div className="text-xs text-text-muted ml-3.5 mt-0.5 truncate">{session.agentType}</div>
+
+      {/* Hover actions */}
+      <div className="hidden group-hover:flex items-center gap-0.5 shrink-0">
+        {isArchived ? (
+          <>
+            {onRestore && (
+              <ActionButton onClick={onRestore} title="Restore">
+                <RestoreIcon />
+              </ActionButton>
+            )}
+            {onDelete && (
+              <ActionButton onClick={onDelete} title="Delete" hoverColor="hover:text-error">
+                <TrashIcon />
+              </ActionButton>
+            )}
+          </>
+        ) : (
+          onArchive && (
+            <ActionButton onClick={onArchive} title="Archive" hoverColor="hover:text-error">
+              <ArchiveIcon />
+            </ActionButton>
+          )
+        )}
+      </div>
     </div>
+  );
+}
+
+function ActionButton({
+  onClick,
+  title,
+  hoverColor = "hover:text-text-primary",
+  children,
+}: {
+  onClick: () => void;
+  title: string;
+  hoverColor?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      title={title}
+      onClick={(e) => {
+        e.stopPropagation();
+        onClick();
+      }}
+      className={`p-0.5 rounded text-text-muted ${hoverColor} transition-colors`}
+    >
+      {children}
+    </button>
   );
 }
 
 function ArchiveIcon() {
   return (
     <svg
-      width="14"
-      height="14"
+      width="13"
+      height="13"
       viewBox="0 0 24 24"
       fill="none"
       stroke="currentColor"
@@ -120,8 +146,8 @@ function ArchiveIcon() {
 function RestoreIcon() {
   return (
     <svg
-      width="14"
-      height="14"
+      width="13"
+      height="13"
       viewBox="0 0 24 24"
       fill="none"
       stroke="currentColor"
@@ -138,8 +164,8 @@ function RestoreIcon() {
 function TrashIcon() {
   return (
     <svg
-      width="14"
-      height="14"
+      width="13"
+      height="13"
       viewBox="0 0 24 24"
       fill="none"
       stroke="currentColor"

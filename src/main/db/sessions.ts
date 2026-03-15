@@ -97,3 +97,11 @@ export function listArchivedSessions(db: Database.Database, repoPath?: string): 
 export function deleteSession(db: Database.Database, sessionId: string): void {
   db.prepare("DELETE FROM sessions WHERE id = ?").run(sessionId);
 }
+
+/** Reset running/waiting sessions to idle on startup (PTYs don't survive restarts). */
+export function resetStaleSessions(db: Database.Database): number {
+  const result = db
+    .prepare("UPDATE sessions SET status = 'idle' WHERE status IN ('running', 'waiting_for_input')")
+    .run();
+  return result.changes;
+}

@@ -21,9 +21,11 @@ describe("createRepo", () => {
     expect(repo.lastUsed).toBeDefined();
   });
 
-  it("throws on duplicate path", () => {
-    createRepo(db, "/Users/dan/project", "project");
-    expect(() => createRepo(db, "/Users/dan/project", "project")).toThrow();
+  it("returns existing repo on duplicate path", () => {
+    const first = createRepo(db, "/Users/dan/project", "project");
+    const second = createRepo(db, "/Users/dan/project", "project");
+    expect(second.path).toBe(first.path);
+    expect(listRepos(db).length).toBe(1);
   });
 });
 
