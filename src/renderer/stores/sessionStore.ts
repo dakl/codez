@@ -14,6 +14,7 @@ interface SessionState {
   deleteSession: (sessionId: string) => Promise<void>;
   archiveSession: (sessionId: string) => Promise<void>;
   restoreSession: (sessionId: string) => Promise<void>;
+  reorderSessions: (activeIndex: number, overIndex: number) => void;
   handleStatusChange: (sessionId: string, status: SessionStatus) => void;
 }
 
@@ -73,8 +74,18 @@ export const useSessionStore = create<SessionState>((set) => ({
       const restored = session ? { ...session, status: "idle" as const } : null;
       return {
         archivedSessions: state.archivedSessions.filter((s) => s.id !== sessionId),
-        sessions: restored ? [restored, ...state.sessions] : state.sessions,
+        sessions: restored ? [...state.sessions, restored] : state.sessions,
       };
+    });
+  },
+
+  reorderSessions: (activeIndex, overIndex) => {
+    set((state) => {
+      const reordered = [...state.sessions];
+      const [moved] = reordered.splice(activeIndex, 1);
+      reordered.splice(overIndex, 0, moved);
+      window.electronAPI.reorderSessions(reordered.map((s) => s.id));
+      return { sessions: reordered };
     });
   },
 

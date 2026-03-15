@@ -14,6 +14,7 @@ import {
   getSession,
   listArchivedSessions,
   listSessions,
+  reorderSessions,
   restoreSession,
   updateAgentSessionId,
   updateSessionStatus,
@@ -143,6 +144,10 @@ export function registerIpcHandlers(options: RegisterHandlersOptions): void {
 
   ipcMain.handle(IPC.SESSIONS_LIST_ARCHIVED, (_event, repoPath?: string) => {
     return listArchivedSessions(db, repoPath);
+  });
+
+  ipcMain.handle(IPC.SESSIONS_REORDER, (_event, sessionIds: string[]) => {
+    reorderSessions(db, sessionIds);
   });
 
   // --- PTY ---

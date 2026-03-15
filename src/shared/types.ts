@@ -32,6 +32,7 @@ export interface ElectronAPI {
   restoreSession: (sessionId: string) => Promise<void>;
   listSessions: (repoPath?: string) => Promise<SessionInfo[]>;
   listArchivedSessions: (repoPath?: string) => Promise<SessionInfo[]>;
+  reorderSessions: (sessionIds: string[]) => Promise<void>;
 
   // Repos
   addRepo: (path: string) => Promise<RepoInfo>;
