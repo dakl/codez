@@ -1,6 +1,6 @@
 {
   "name": "codez",
-  "version": "2.1.0",
+  "version": "2.2.0",
   "productName": "Codez",
   "description": "A macOS desktop app for managing AI coding agent sessions across git worktrees.",
   "author": "Daniel Klevebring",
