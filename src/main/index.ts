@@ -7,6 +7,7 @@ import { applyDockIcon } from "./dock.js";
 import { registerIpcHandlers } from "./ipc-handlers.js";
 import { getDbPath, getSettingsPath } from "./paths.js";
 import { readSettings } from "./settings.js";
+import { setupUpdater } from "./updater.js";
 
 // Packaged macOS apps don't inherit the user's shell PATH.
 // Resolve it once at startup so spawned CLI tools (claude, etc.) are found.
@@ -80,6 +81,7 @@ app.whenReady().then(() => {
   applyDockIcon(settings.appIcon);
 
   createWindow();
+  setupUpdater();
 
   app.on("activate", () => {
     if (BrowserWindow.getAllWindows().length === 0) {

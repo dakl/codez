@@ -47,9 +47,18 @@ export const IPC = {
   PTY_RESIZE: "pty:resize",
   PTY_KILL: "pty:kill",
 
+  // Updater
+  UPDATER_CHECK: "updater:check",
+  UPDATER_DOWNLOAD: "updater:download",
+  UPDATER_QUIT_AND_INSTALL: "updater:quitAndInstall",
+
   // Events (main → renderer)
   EVENT_AGENT: "event:agent",
   EVENT_SESSION_STATUS: "event:sessionStatus",
   EVENT_PTY_DATA: "event:ptyData",
   EVENT_PTY_EXIT: "event:ptyExit",
+  EVENT_UPDATE_AVAILABLE: "updater:update-available",
+  EVENT_UPDATE_DOWNLOADED: "updater:update-downloaded",
+  EVENT_UPDATE_PROGRESS: "updater:progress",
+  EVENT_UPDATE_ERROR: "updater:error",
 } as const;

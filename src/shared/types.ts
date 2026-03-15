@@ -76,11 +76,22 @@ export interface ElectronAPI {
   ptyResize: (sessionId: string, cols: number, rows: number) => Promise<void>;
   ptyKill: (sessionId: string) => Promise<void>;
 
+  // Updater
+  checkForUpdate: () => Promise<{ available: boolean; version?: string; releaseNotes?: string; error?: string }>;
+  downloadUpdate: () => Promise<{ success: boolean; error?: string }>;
+  quitAndInstall: () => Promise<void>;
+
   // Events (main → renderer)
   onAgentEvent: (callback: (event: AgentEvent) => void) => () => void;
   onSessionStatusChanged: (callback: (sessionId: string, status: SessionStatus) => void) => () => void;
   onPtyData: (callback: (sessionId: string, data: string) => void) => () => void;
   onPtyExit: (callback: (sessionId: string, exitCode: number) => void) => () => void;
+  onUpdateAvailable: (callback: (version: string) => void) => () => void;
+  onUpdateDownloaded: (callback: (info: { version: string }) => void) => () => void;
+  onUpdateProgress: (
+    callback: (progress: { percent: number; bytesPerSecond: number; transferred: number; total: number }) => void,
+  ) => () => void;
+  onUpdateError: (callback: (info: { error: string }) => void) => () => void;
 }
 
 declare global {

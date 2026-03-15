@@ -35,10 +35,17 @@ const CH = {
   SETTINGS_GET_ICON_DATA_URLS: "settings:getIconDataUrls",
   SETTINGS_SET_APP_ICON: "settings:setAppIcon",
   APP_GET_INFO: "app:getInfo",
+  UPDATER_CHECK: "updater:check",
+  UPDATER_DOWNLOAD: "updater:download",
+  UPDATER_QUIT_AND_INSTALL: "updater:quitAndInstall",
   EVENT_AGENT: "event:agent",
   EVENT_SESSION_STATUS: "event:sessionStatus",
   EVENT_PTY_DATA: "event:ptyData",
   EVENT_PTY_EXIT: "event:ptyExit",
+  EVENT_UPDATE_AVAILABLE: "updater:update-available",
+  EVENT_UPDATE_DOWNLOADED: "updater:update-downloaded",
+  EVENT_UPDATE_PROGRESS: "updater:progress",
+  EVENT_UPDATE_ERROR: "updater:error",
 } as const;
 
 const api = {
@@ -95,6 +102,11 @@ const api = {
   // App
   getAppInfo: () => ipcRenderer.invoke(CH.APP_GET_INFO),
 
+  // Updater
+  checkForUpdate: () => ipcRenderer.invoke(CH.UPDATER_CHECK),
+  downloadUpdate: () => ipcRenderer.invoke(CH.UPDATER_DOWNLOAD),
+  quitAndInstall: () => ipcRenderer.invoke(CH.UPDATER_QUIT_AND_INSTALL),
+
   // Events (main → renderer)
   onAgentEvent: (callback: (event: unknown) => void) => {
     const handler = (_event: unknown, data: unknown) => callback(data);
@@ -115,6 +127,31 @@ const api = {
     const handler = (_event: unknown, sessionId: string, exitCode: number) => callback(sessionId, exitCode);
     ipcRenderer.on(CH.EVENT_PTY_EXIT, handler);
     return () => ipcRenderer.removeListener(CH.EVENT_PTY_EXIT, handler);
+  },
+  onUpdateAvailable: (callback: (version: string) => void) => {
+    const handler = (_event: unknown, version: string) => callback(version);
+    ipcRenderer.on(CH.EVENT_UPDATE_AVAILABLE, handler);
+    return () => ipcRenderer.removeListener(CH.EVENT_UPDATE_AVAILABLE, handler);
+  },
+  onUpdateDownloaded: (callback: (info: { version: string }) => void) => {
+    const handler = (_event: unknown, info: { version: string }) => callback(info);
+    ipcRenderer.on(CH.EVENT_UPDATE_DOWNLOADED, handler);
+    return () => ipcRenderer.removeListener(CH.EVENT_UPDATE_DOWNLOADED, handler);
+  },
+  onUpdateProgress: (
+    callback: (progress: { percent: number; bytesPerSecond: number; transferred: number; total: number }) => void,
+  ) => {
+    const handler = (
+      _event: unknown,
+      progress: { percent: number; bytesPerSecond: number; transferred: number; total: number },
+    ) => callback(progress);
+    ipcRenderer.on(CH.EVENT_UPDATE_PROGRESS, handler);
+    return () => ipcRenderer.removeListener(CH.EVENT_UPDATE_PROGRESS, handler);
+  },
+  onUpdateError: (callback: (info: { error: string }) => void) => {
+    const handler = (_event: unknown, info: { error: string }) => callback(info);
+    ipcRenderer.on(CH.EVENT_UPDATE_ERROR, handler);
+    return () => ipcRenderer.removeListener(CH.EVENT_UPDATE_ERROR, handler);
   },
 };
 
