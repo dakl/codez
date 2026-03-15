@@ -1,4 +1,5 @@
 import { execFileSync, spawn } from "node:child_process";
+import fs from "node:fs";
 import type Database from "better-sqlite3";
 import { app, type BrowserWindow, dialog, ipcMain } from "electron";
 import * as pty from "node-pty";
@@ -17,6 +18,7 @@ import {
   updateAgentSessionId,
   updateSessionStatus,
 } from "./db/sessions.js";
+import { applyDockIcon, getIconsDir } from "./dock.js";
 import { PtyManager } from "./services/pty-manager.js";
 import { SessionLifecycle } from "./services/session-lifecycle.js";
 import { getShortcutOverrides, readSettings, saveShortcutOverrides, writeSettings } from "./settings.js";
@@ -239,6 +241,29 @@ export function registerIpcHandlers(options: RegisterHandlersOptions): void {
 
   ipcMain.handle(IPC.SETTINGS_SAVE_SHORTCUTS, (_event, overrides: Record<string, string>) => {
     saveShortcutOverrides(settingsPath, overrides);
+  });
+
+  // --- Icons ---
+
+  ipcMain.handle(IPC.SETTINGS_GET_ICON_DATA_URLS, () => {
+    const iconsDir = getIconsDir();
+    const result: Record<string, string> = {};
+    for (let i = 1; i <= 9; i++) {
+      const iconId = `icon-0${i}`;
+      const iconPath = `${iconsDir}/${iconId}.png`;
+      try {
+        const data = fs.readFileSync(iconPath);
+        result[iconId] = `data:image/png;base64,${data.toString("base64")}`;
+      } catch {
+        // Skip icons that don't exist
+      }
+    }
+    return result;
+  });
+
+  ipcMain.handle(IPC.SETTINGS_SET_APP_ICON, (_event, iconId: string) => {
+    writeSettings(settingsPath, { appIcon: iconId });
+    applyDockIcon(iconId);
   });
 
   // --- App ---

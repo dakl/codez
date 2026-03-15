@@ -18,6 +18,7 @@ export interface AppSettings {
   additionalDirs?: string[];
   agentConfigs?: Record<string, Partial<AgentConfig>>;
   theme?: ThemeId;
+  appIcon?: string;
 }
 
 export interface ElectronAPI {
@@ -56,6 +57,10 @@ export interface ElectronAPI {
   saveShortcutOverrides: (overrides: Record<string, string>) => Promise<void>;
   getSettings: () => Promise<AppSettings>;
   saveSettings: (settings: Partial<AppSettings>) => Promise<void>;
+  // Icons
+  getIconDataUrls: () => Promise<Record<string, string>>;
+  setAppIcon: (iconId: string) => Promise<void>;
+
   // App
   getAppInfo: () => Promise<{ name: string; version: string }>;
 

@@ -34,6 +34,10 @@ export const IPC = {
   SETTINGS_SAVE_SHORTCUTS: "settings:saveShortcuts",
   SETTINGS_GET: "settings:get",
   SETTINGS_SAVE: "settings:save",
+  // Icons
+  SETTINGS_GET_ICON_DATA_URLS: "settings:getIconDataUrls",
+  SETTINGS_SET_APP_ICON: "settings:setAppIcon",
+
   // App
   APP_GET_INFO: "app:getInfo",
 

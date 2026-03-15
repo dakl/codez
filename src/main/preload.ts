@@ -32,6 +32,8 @@ const CH = {
   PTY_INPUT: "pty:input",
   PTY_RESIZE: "pty:resize",
   PTY_KILL: "pty:kill",
+  SETTINGS_GET_ICON_DATA_URLS: "settings:getIconDataUrls",
+  SETTINGS_SET_APP_ICON: "settings:setAppIcon",
   APP_GET_INFO: "app:getInfo",
   EVENT_AGENT: "event:agent",
   EVENT_SESSION_STATUS: "event:sessionStatus",
@@ -78,6 +80,10 @@ const api = {
     ipcRenderer.invoke(CH.SETTINGS_SAVE_SHORTCUTS, overrides),
   getSettings: () => ipcRenderer.invoke(CH.SETTINGS_GET),
   saveSettings: (settings: Record<string, unknown>) => ipcRenderer.invoke(CH.SETTINGS_SAVE, settings),
+  // Icons
+  getIconDataUrls: () => ipcRenderer.invoke(CH.SETTINGS_GET_ICON_DATA_URLS),
+  setAppIcon: (iconId: string) => ipcRenderer.invoke(CH.SETTINGS_SET_APP_ICON, iconId),
+
   // PTY
   ptyCreate: (sessionId: string, agentType: string, worktreePath: string, cols: number, rows: number) =>
     ipcRenderer.invoke(CH.PTY_CREATE, sessionId, agentType, worktreePath, cols, rows),

@@ -3,8 +3,10 @@ import path from "node:path";
 import { app, BrowserWindow } from "electron";
 import { createDatabase } from "./db/connection.js";
 import { resetStaleSessions } from "./db/sessions.js";
+import { applyDockIcon } from "./dock.js";
 import { registerIpcHandlers } from "./ipc-handlers.js";
 import { getDbPath, getSettingsPath } from "./paths.js";
+import { readSettings } from "./settings.js";
 
 // Packaged macOS apps don't inherit the user's shell PATH.
 // Resolve it once at startup so spawned CLI tools (claude, etc.) are found.
@@ -65,11 +67,17 @@ app.whenReady().then(() => {
     console.log(`[startup] Reset ${staleCount} stale session(s) to idle`);
   }
 
+  const settingsPath = getSettingsPath();
+
   registerIpcHandlers({
     db,
-    settingsPath: getSettingsPath(),
+    settingsPath,
     getMainWindow: () => mainWindow,
   });
+
+  // Apply saved dock icon (defaults to icon-01)
+  const settings = readSettings(settingsPath);
+  applyDockIcon(settings.appIcon);
 
   createWindow();
 

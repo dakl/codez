@@ -3,6 +3,11 @@ productName: Codez
 directories:
   output: release
   buildResources: resources
+extraResources:
+  - from: resources/
+    to: icons/
+    filter:
+      - "icon-0*.png"
 files:
   - dist/**/*
   - node_modules/**/*
@@ -18,6 +23,7 @@ publish:
   repo: codez
   releaseType: release
 mac:
+  icon: resources/icon-01.png
   category: public.app-category.developer-tools
   target:
     - target: dmg
