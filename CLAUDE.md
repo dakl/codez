@@ -78,6 +78,16 @@ npm run format        # Biome format
 npm test              # Run tests
 ```
 
+### Releasing
+
+When releasing a new version, ALWAYS trigger the Release workflow after pushing:
+
+```bash
+gh workflow run Release --ref main -f version=<version>
+```
+
+This builds the DMG on macOS CI and attaches it to the GitHub release. Without this, the release is source-only.
+
 ## Architecture
 
 ### Directory Structure
