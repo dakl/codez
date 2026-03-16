@@ -45,12 +45,17 @@ export class PtyManager extends EventEmitter {
 
     const binaryName = agentType;
 
-    // Build args — Claude in interactive mode manages its own sessions
-    // per working directory, so we pass --continue for resumed sessions
-    // to pick up the most recent conversation in that directory.
+    // Build args — for Claude, pin each Codez session to a specific
+    // Claude session ID so multiple sessions in the same repo don't collide.
+    // First launch: --session-id <id> (assigns our UUID to Claude)
+    // Subsequent: --resume <id> (resumes that specific conversation)
     const args: string[] = [];
-    if (agentSessionId && agentType === "claude") {
-      args.push("--continue");
+    if (agentType === "claude") {
+      if (agentSessionId) {
+        args.push("--resume", agentSessionId);
+      } else {
+        args.push("--session-id", sessionId);
+      }
     }
 
     const cleanEnv: Record<string, string> = {};

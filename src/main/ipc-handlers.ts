@@ -155,15 +155,15 @@ export function registerIpcHandlers(options: RegisterHandlersOptions): void {
   ipcMain.handle(
     IPC.PTY_CREATE,
     (_event, sessionId: string, agentType: AgentType, worktreePath: string, cols: number, rows: number) => {
-      // Check if this session has been used before (has agentSessionId marker)
+      // Pass the stored Claude session ID for --resume, or null for first launch (--session-id).
+      // Legacy sessions stored "used" as a boolean marker — treat those as new sessions.
       const sessionRecord = getSession(db, sessionId);
-      const hasBeenUsed = !!sessionRecord?.agentSessionId;
+      const storedSessionId = sessionRecord?.agentSessionId === "used" ? null : (sessionRecord?.agentSessionId ?? null);
+      ptyManager.create(sessionId, agentType, worktreePath, cols, rows, storedSessionId);
 
-      ptyManager.create(sessionId, agentType, worktreePath, cols, rows, hasBeenUsed ? "continue" : null);
-
-      // Mark session as used so future restarts pass --continue
-      if (!hasBeenUsed) {
-        updateAgentSessionId(db, sessionId, "used");
+      // Store the session ID so future launches use --resume
+      if (!storedSessionId) {
+        updateAgentSessionId(db, sessionId, sessionId);
       }
 
       updateSessionStatus(db, sessionId, "running");
