@@ -1,75 +1,94 @@
 # Codez
 
-A macOS desktop app for managing AI coding agent sessions. Wraps CLI agents (Claude Code, Mistral Vibe, Gemini CLI) in a native Electron shell with multiple parallel sessions, git worktree isolation, voice input, and file diff review.
+A macOS desktop app for running [Claude Code](https://docs.anthropic.com/en/docs/claude-code) sessions in parallel. Native Electron shell with persistent sessions, drag-and-drop reordering, themes, and auto-updates.
 
-## Features
+<img src="resources/icon.png" width="128" alt="Codez app icon" />
 
-- **Multi-agent support** — Claude Code today, Mistral Vibe and Gemini CLI planned
-- **Parallel sessions** — run multiple agent conversations side by side
-- **Git worktree isolation** — each session gets its own worktree so agents don't collide
-- **Voice input** — local speech-to-text via whisper.cpp
-- **File diff review** — inspect agent changes before committing
-- **Keyboard-first** — customizable shortcuts with conflict detection
+## Install
 
-## Requirements
+Download the latest `.dmg` from [Releases](https://github.com/dakl/codez/releases/latest), open it, and drag Codez to Applications.
 
-- macOS
-- Node.js 20+
-- npm
+Codez checks for updates automatically and will notify you when a new version is available.
 
-## Getting Started
+### Prerequisites
+
+- **macOS** (Apple Silicon)
+- **Claude Code CLI** installed and authenticated — [install guide](https://docs.anthropic.com/en/docs/claude-code/getting-started)
+
+## What it does
+
+Codez wraps the Claude Code CLI in a native app with session management. Each session is a full Claude Code conversation running in its own PTY (terminal emulator), so you can run multiple agents in parallel across different repos.
+
+### Features
+
+- **Parallel sessions** — run multiple Claude Code conversations side by side
+- **Persistent history** — sessions survive app restarts; resume where you left off
+- **Drag-and-drop reordering** — organize sessions manually in the sidebar
+- **Session archiving** — archive finished sessions, restore them later
+- **Themes** — 6 built-in themes (3 dark, 3 light)
+- **Custom app icons** — 9 icon variants to choose from
+- **Keyboard shortcuts** — Cmd+1..9 to jump between sessions, customizable bindings
+- **Auto-updates** — notifies when new versions are available on GitHub Releases
+
+### Roadmap
+
+- Voice input via local Whisper STT
+- Git worktree isolation per session
+- File diff review before committing
+- Additional agents (Gemini CLI, Mistral Vibe)
+
+## Development
 
 ```bash
+git clone https://github.com/dakl/codez.git
+cd codez
 npm install
 npm run dev
 ```
 
-This starts the main process, Vite dev server, and Electron concurrently with hot reload.
+This rebuilds native modules, compiles TypeScript, starts the Vite dev server, and launches Electron with hot reload.
 
-## Scripts
+### Commands
 
 | Command | Description |
 |---------|-------------|
 | `npm run dev` | Start dev mode (main + renderer + Electron) |
 | `npm run build` | Production build |
-| `npm test` | Run unit/integration tests (vitest) |
-| `npm run test:watch` | Vitest in watch mode |
-| `npm run test:e2e` | Playwright E2E tests |
+| `npm test` | Run tests (vitest) |
 | `npm run lint` | Biome lint check |
 | `npm run format` | Biome format |
-| `npm run dist` | Package with electron-builder |
 
-## Tech Stack
+### Tech Stack
 
-- **Runtime**: Electron 40
-- **Renderer**: React 19, TypeScript, Tailwind CSS 4, Zustand 5
-- **Build**: Vite (renderer), tsc (main process)
-- **Database**: better-sqlite3 (SQLite, WAL mode)
-- **Voice**: whisper-node
-- **Linting/Formatting**: Biome
-- **Testing**: Vitest + Playwright
-- **Packaging**: electron-builder
+| Layer | Technology |
+|-------|-----------|
+| Runtime | Electron 40 |
+| UI | React 19, TypeScript, Tailwind CSS 4 |
+| State | Zustand 5 |
+| Build | Vite (renderer), tsc (main) |
+| Database | better-sqlite3 (SQLite, WAL mode) |
+| Terminal | node-pty |
+| Drag & Drop | @dnd-kit |
+| Lint/Format | Biome |
+| Tests | Vitest |
+| Packaging | electron-builder |
 
-## Architecture
+### Architecture
 
 ```
 src/
-├── shared/           # Types shared between main and renderer
-├── main/             # Electron main process
-│   ├── db/           # SQLite database layer
-│   ├── agents/       # Agent abstraction + adapters
-│   ├── worktree/     # Git worktree management
-│   ├── voice/        # Whisper STT
-│   ├── file-watcher/ # Diff tracking
-│   └── services/     # Session lifecycle, notifications
-├── renderer/         # React UI
-│   ├── stores/       # Zustand state stores
-│   ├── hooks/        # Custom React hooks
-│   └── components/   # UI components
-└── __fixtures__/     # Test fixture files
+├── shared/        # Types + IPC channel constants
+├── main/          # Electron main process
+│   ├── db/        # SQLite schema, migrations, queries
+│   ├── agents/    # Agent adapters (Claude Code)
+│   └── services/  # PTY manager, session lifecycle
+└── renderer/      # React UI
+    ├── stores/    # Zustand state
+    ├── hooks/     # Keyboard shortcuts, etc.
+    └── components/
 ```
 
-Each CLI agent has an adapter that normalizes its interface. Claude Code in `-p` mode exits after each turn — multi-turn conversation spawns successive processes with `--resume`. No stdin management, just spawn, stream NDJSON, wait for exit.
+Claude Code runs in `-p` (pipe) mode — each turn spawns a process that streams NDJSON events and exits on completion. Multi-turn conversations use `--resume` to continue the session.
 
 ## License
 
