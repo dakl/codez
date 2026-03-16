@@ -37,13 +37,13 @@ describe("PtyManager", () => {
   }
 
   describe("create", () => {
-    it("spawns a PTY with no args for new claude session", () => {
+    it("spawns a PTY with --session-id for new claude session", () => {
       const { manager, spawnFn } = createManager();
       manager.create("session-1", "claude", "/repo/path", 80, 24);
 
       expect(spawnFn).toHaveBeenCalledWith(
         "claude",
-        [],
+        ["--session-id", "session-1"],
         expect.objectContaining({
           cwd: "/repo/path",
           cols: 80,
@@ -60,18 +60,33 @@ describe("PtyManager", () => {
       expect(callOptions.env.TERM).toBe("xterm-256color");
     });
 
-    it("passes --continue for claude when agentSessionId is provided", () => {
+    it("passes --session-id for first launch of a claude session", () => {
       const { manager, spawnFn } = createManager();
-      manager.create("session-1", "claude", "/repo", 80, 24, "continue");
+      manager.create("session-1", "claude", "/repo", 80, 24);
 
-      expect(spawnFn).toHaveBeenCalledWith("claude", ["--continue"], expect.objectContaining({ cwd: "/repo" }));
+      expect(spawnFn).toHaveBeenCalledWith(
+        "claude",
+        ["--session-id", "session-1"],
+        expect.objectContaining({ cwd: "/repo" }),
+      );
     });
 
-    it("passes no args when agentSessionId is null", () => {
+    it("passes --resume for subsequent launches of a claude session", () => {
       const { manager, spawnFn } = createManager();
-      manager.create("session-1", "claude", "/repo", 80, 24, null);
+      manager.create("session-1", "claude", "/repo", 80, 24, "session-1");
 
-      expect(spawnFn).toHaveBeenCalledWith("claude", [], expect.objectContaining({ cwd: "/repo" }));
+      expect(spawnFn).toHaveBeenCalledWith(
+        "claude",
+        ["--resume", "session-1"],
+        expect.objectContaining({ cwd: "/repo" }),
+      );
+    });
+
+    it("passes no session args for non-claude agents", () => {
+      const { manager, spawnFn } = createManager();
+      manager.create("session-1", "gemini", "/repo", 80, 24);
+
+      expect(spawnFn).toHaveBeenCalledWith("gemini", [], expect.objectContaining({ cwd: "/repo" }));
     });
   });
 
