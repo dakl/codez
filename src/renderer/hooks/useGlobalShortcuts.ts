@@ -13,7 +13,7 @@ export function isNewSessionShortcut(event: KeyboardEvent): boolean {
 
 export function useGlobalShortcuts(): void {
   const toggleSettings = useThemeStore((state) => state.toggleSettings);
-  const createSession = useSessionStore((state) => state.createSession);
+  const setPendingNewSessionRepo = useSessionStore((state) => state.setPendingNewSessionRepo);
   const addRepoViaDialog = useRepoStore((state) => state.addRepoViaDialog);
 
   useEffect(() => {
@@ -25,15 +25,14 @@ export function useGlobalShortcuts(): void {
 
       if (isNewSessionShortcut(event)) {
         event.preventDefault();
-        // Always open folder picker so user chooses where to run
         const repo = await addRepoViaDialog();
         if (repo) {
-          createSession(repo.path, "claude");
+          setPendingNewSessionRepo(repo);
         }
       }
     }
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [toggleSettings, createSession, addRepoViaDialog]);
+  }, [toggleSettings, setPendingNewSessionRepo, addRepoViaDialog]);
 }

@@ -6,6 +6,7 @@ interface SessionRow {
   id: string;
   repo_path: string;
   worktree_path: string;
+  branch_name: string | null;
   agent_type: string;
   agent_session_id: string | null;
   status: string;
@@ -20,6 +21,7 @@ function rowToSession(row: SessionRow): SessionInfo {
     id: row.id,
     repoPath: row.repo_path,
     worktreePath: row.worktree_path,
+    branchName: row.branch_name,
     agentType: row.agent_type as AgentType,
     agentSessionId: row.agent_session_id,
     status: row.status as SessionStatus,
@@ -32,6 +34,7 @@ function rowToSession(row: SessionRow): SessionInfo {
 interface CreateSessionParams {
   repoPath: string;
   worktreePath: string;
+  branchName?: string | null;
   agentType: AgentType;
   name: string;
 }
@@ -42,8 +45,16 @@ export function createSession(db: Database.Database, params: CreateSessionParams
     db.prepare("SELECT COALESCE(MAX(sort_order), -1) as max_order FROM sessions").get() as { max_order: number }
   ).max_order;
   db.prepare(
-    "INSERT INTO sessions (id, repo_path, worktree_path, agent_type, name, sort_order) VALUES (?, ?, ?, ?, ?, ?)",
-  ).run(id, params.repoPath, params.worktreePath, params.agentType, params.name, maxOrder + 1);
+    "INSERT INTO sessions (id, repo_path, worktree_path, branch_name, agent_type, name, sort_order) VALUES (?, ?, ?, ?, ?, ?, ?)",
+  ).run(
+    id,
+    params.repoPath,
+    params.worktreePath,
+    params.branchName ?? null,
+    params.agentType,
+    params.name,
+    maxOrder + 1,
+  );
   return getSession(db, id) as SessionInfo;
 }
 
@@ -110,6 +121,11 @@ export function listArchivedSessions(db: Database.Database, repoPath?: string): 
     .prepare("SELECT * FROM sessions WHERE status = 'archived' ORDER BY last_active_at DESC")
     .all() as SessionRow[];
   return rows.map(rowToSession);
+}
+
+/** Clear worktree info after cleanup — session resumes in repo root if restored. */
+export function clearSessionWorktree(db: Database.Database, sessionId: string): void {
+  db.prepare("UPDATE sessions SET worktree_path = repo_path, branch_name = NULL WHERE id = ?").run(sessionId);
 }
 
 export function deleteSession(db: Database.Database, sessionId: string): void {

@@ -4,7 +4,9 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useSessionShortcuts } from "../../hooks/useChordShortcuts";
 import { useRepoStore } from "../../stores/repoStore";
 import { useSessionStore } from "../../stores/sessionStore";
+import { NewSessionDialog } from "./NewSessionDialog";
 import { SessionListItem, type SessionListItemProps } from "./SessionListItem";
+import { WorktreeDeleteDialog } from "./WorktreeDeleteDialog";
 
 export function Sidebar() {
   const sessions = useSessionStore((state) => state.sessions);
@@ -15,8 +17,16 @@ export function Sidebar() {
   const loadSessions = useSessionStore((state) => state.loadSessions);
   const loadArchivedSessions = useSessionStore((state) => state.loadArchivedSessions);
   const archiveSession = useSessionStore((state) => state.archiveSession);
+  const archiveSessionWithWorktreeCleanup = useSessionStore((state) => state.archiveSessionWithWorktreeCleanup);
   const restoreSession = useSessionStore((state) => state.restoreSession);
   const deleteSession = useSessionStore((state) => state.deleteSession);
+  const deleteSessionWithWorktreeCleanup = useSessionStore((state) => state.deleteSessionWithWorktreeCleanup);
+  const pendingNewSessionRepo = useSessionStore((state) => state.pendingNewSessionRepo);
+  const setPendingNewSessionRepo = useSessionStore((state) => state.setPendingNewSessionRepo);
+  const pendingWorktreeSession = useSessionStore((state) => state.pendingWorktreeSession);
+  const pendingWorktreeContext = useSessionStore((state) => state.pendingWorktreeContext);
+  const showWorktreeDialog = useSessionStore((state) => state.showWorktreeDialog);
+  const dismissWorktreeDialog = useSessionStore((state) => state.dismissWorktreeDialog);
 
   const repos = useRepoStore((state) => state.repos);
   const loadRepos = useRepoStore((state) => state.loadRepos);
@@ -95,9 +105,68 @@ export function Sidebar() {
   const handleNewSessionClick = useCallback(async () => {
     const repo = await addRepoViaDialog();
     if (repo) {
-      await createSession(repo.path, "claude");
+      setPendingNewSessionRepo(repo);
     }
-  }, [addRepoViaDialog, createSession]);
+  }, [addRepoViaDialog, setPendingNewSessionRepo]);
+
+  const handleNewSessionConfirm = useCallback(
+    async (branchName: string | undefined) => {
+      if (!pendingNewSessionRepo) return;
+      await createSession(pendingNewSessionRepo.path, "claude", branchName);
+      setPendingNewSessionRepo(null);
+    },
+    [pendingNewSessionRepo, createSession, setPendingNewSessionRepo],
+  );
+
+  const handleArchiveSession = useCallback(
+    (session: (typeof sessions)[number]) => {
+      if (session.branchName) {
+        showWorktreeDialog(session, "archive");
+      } else {
+        archiveSession(session.id);
+      }
+    },
+    [archiveSession, showWorktreeDialog],
+  );
+
+  const handleDeleteSession = useCallback(
+    (session: (typeof archivedSessions)[number]) => {
+      if (session.branchName) {
+        showWorktreeDialog(session, "delete");
+      } else {
+        deleteSession(session.id);
+      }
+    },
+    [deleteSession, showWorktreeDialog],
+  );
+
+  const handleWorktreeKeep = useCallback(() => {
+    if (!pendingWorktreeSession) return;
+    if (pendingWorktreeContext === "archive") {
+      archiveSessionWithWorktreeCleanup(pendingWorktreeSession.id, false);
+    } else {
+      deleteSessionWithWorktreeCleanup(pendingWorktreeSession.id, false);
+    }
+  }, [
+    pendingWorktreeSession,
+    pendingWorktreeContext,
+    archiveSessionWithWorktreeCleanup,
+    deleteSessionWithWorktreeCleanup,
+  ]);
+
+  const handleWorktreeDelete = useCallback(() => {
+    if (!pendingWorktreeSession) return;
+    if (pendingWorktreeContext === "archive") {
+      archiveSessionWithWorktreeCleanup(pendingWorktreeSession.id, true);
+    } else {
+      deleteSessionWithWorktreeCleanup(pendingWorktreeSession.id, true);
+    }
+  }, [
+    pendingWorktreeSession,
+    pendingWorktreeContext,
+    archiveSessionWithWorktreeCleanup,
+    deleteSessionWithWorktreeCleanup,
+  ]);
 
   return (
     <aside className="w-60 border-r border-white/[0.06] bg-transparent flex flex-col">
@@ -133,8 +202,8 @@ export function Sidebar() {
                   session={session}
                   isActive={session.id === activeSessionId}
                   onClick={() => setActiveSession(session.id)}
-                  onArchive={() => archiveSession(session.id)}
-                  branchName={branches.get(session.repoPath)}
+                  onArchive={() => handleArchiveSession(session)}
+                  branchName={session.branchName ?? branches.get(session.repoPath)}
                   shortcutNumber={metaHeld && index < 9 ? index + 1 : null}
                 />
               ))}
@@ -175,13 +244,33 @@ export function Sidebar() {
                   isActive={session.id === activeSessionId}
                   onClick={() => setActiveSession(session.id)}
                   onRestore={() => restoreSession(session.id)}
-                  onDelete={() => deleteSession(session.id)}
-                  branchName={branches.get(session.repoPath)}
+                  onDelete={() => handleDeleteSession(session)}
+                  branchName={session.branchName ?? branches.get(session.repoPath)}
                 />
               ))}
             </div>
           )}
         </div>
+      )}
+
+      {/* New session dialog */}
+      {pendingNewSessionRepo && (
+        <NewSessionDialog
+          repoName={pendingNewSessionRepo.name}
+          onConfirm={handleNewSessionConfirm}
+          onCancel={() => setPendingNewSessionRepo(null)}
+        />
+      )}
+
+      {/* Worktree cleanup dialog (archive or delete) */}
+      {pendingWorktreeSession?.branchName && pendingWorktreeContext && (
+        <WorktreeDeleteDialog
+          branchName={pendingWorktreeSession.branchName}
+          context={pendingWorktreeContext}
+          onDeleteBranch={handleWorktreeDelete}
+          onKeepBranch={handleWorktreeKeep}
+          onCancel={dismissWorktreeDialog}
+        />
       )}
     </aside>
   );

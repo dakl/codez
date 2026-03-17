@@ -13,6 +13,7 @@ export interface SessionInfo {
   id: string;
   repoPath: string;
   worktreePath: string;
+  branchName: string | null;
   agentType: AgentType;
   agentSessionId: string | null;
   status: SessionStatus;

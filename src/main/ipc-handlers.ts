@@ -9,6 +9,7 @@ import { createMessage, deleteMessagesBySession, listMessages } from "./db/messa
 import { createRepo, deleteRepo, listRepos } from "./db/repos.js";
 import {
   archiveSession,
+  clearSessionWorktree,
   createSession,
   deleteSession,
   getSession,
@@ -23,6 +24,7 @@ import { applyDockIcon, getIconsDir } from "./dock.js";
 import { PtyManager } from "./services/pty-manager.js";
 import { SessionLifecycle } from "./services/session-lifecycle.js";
 import { getShortcutOverrides, readSettings, saveShortcutOverrides, writeSettings } from "./settings.js";
+import { createWorktree, removeWorktree } from "./worktree/worktree-manager.js";
 
 interface RegisterHandlersOptions {
   db: Database.Database;
@@ -105,11 +107,21 @@ export function registerIpcHandlers(options: RegisterHandlersOptions): void {
 
   // --- Sessions ---
 
-  ipcMain.handle(IPC.SESSIONS_CREATE, (_event, repoPath: string, agentType: AgentType, name?: string) => {
-    const sessionName = name || `Session ${Date.now()}`;
-    const worktreePath = repoPath; // worktree manager comes in Phase 3
-    return createSession(db, { repoPath, worktreePath, agentType, name: sessionName });
-  });
+  ipcMain.handle(
+    IPC.SESSIONS_CREATE,
+    (_event, repoPath: string, agentType: AgentType, branchName?: string, name?: string) => {
+      const sessionName = name || `Session ${Date.now()}`;
+      let worktreePath = repoPath;
+      let resolvedBranch: string | null = null;
+
+      if (branchName) {
+        worktreePath = createWorktree(repoPath, branchName);
+        resolvedBranch = branchName;
+      }
+
+      return createSession(db, { repoPath, worktreePath, branchName: resolvedBranch, agentType, name: sessionName });
+    },
+  );
 
   ipcMain.handle(IPC.SESSIONS_SEND_MESSAGE, (_event, sessionId: string, message: string) => {
     createMessage(db, { sessionId, role: "user", content: message });
@@ -148,6 +160,16 @@ export function registerIpcHandlers(options: RegisterHandlersOptions): void {
 
   ipcMain.handle(IPC.SESSIONS_REORDER, (_event, sessionIds: string[]) => {
     reorderSessions(db, sessionIds);
+  });
+
+  // --- Worktrees ---
+
+  ipcMain.handle(IPC.WORKTREES_CLEANUP, (_event, sessionId: string) => {
+    const session = getSession(db, sessionId);
+    if (session?.branchName) {
+      removeWorktree(session.worktreePath, session.branchName, session.repoPath);
+      clearSessionWorktree(db, sessionId);
+    }
   });
 
   // --- PTY ---

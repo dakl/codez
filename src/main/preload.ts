@@ -51,8 +51,8 @@ const CH = {
 
 const api = {
   // Sessions
-  createSession: (repoPath: string, agentType: string, name?: string) =>
-    ipcRenderer.invoke(CH.SESSIONS_CREATE, repoPath, agentType, name),
+  createSession: (repoPath: string, agentType: string, branchName?: string, name?: string) =>
+    ipcRenderer.invoke(CH.SESSIONS_CREATE, repoPath, agentType, branchName, name),
   resumeSession: (sessionId: string) => ipcRenderer.invoke(CH.SESSIONS_RESUME, sessionId),
   sendMessage: (sessionId: string, message: string) => ipcRenderer.invoke(CH.SESSIONS_SEND_MESSAGE, sessionId, message),
   stopSession: (sessionId: string) => ipcRenderer.invoke(CH.SESSIONS_STOP, sessionId),

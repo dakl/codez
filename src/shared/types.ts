@@ -23,7 +23,7 @@ export interface AppSettings {
 
 export interface ElectronAPI {
   // Sessions
-  createSession: (repoPath: string, agentType: AgentType, name?: string) => Promise<SessionInfo>;
+  createSession: (repoPath: string, agentType: AgentType, branchName?: string, name?: string) => Promise<SessionInfo>;
   resumeSession: (sessionId: string) => Promise<SessionInfo>;
   sendMessage: (sessionId: string, message: string) => Promise<void>;
   stopSession: (sessionId: string) => Promise<void>;

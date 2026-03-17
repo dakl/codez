@@ -43,6 +43,29 @@ describe("createSession", () => {
   });
 });
 
+describe("createSession with branchName", () => {
+  it("stores and returns branchName", () => {
+    const session = createSession(db, {
+      repoPath: "/Users/dan/project",
+      worktreePath: "/Users/dan/project--feat-login",
+      branchName: "feat-login",
+      agentType: "claude",
+      name: "login feature",
+    });
+    expect(session.branchName).toBe("feat-login");
+  });
+
+  it("defaults branchName to null when not provided", () => {
+    const session = createSession(db, {
+      repoPath: "/Users/dan/project",
+      worktreePath: "/Users/dan/project",
+      agentType: "claude",
+      name: "no branch",
+    });
+    expect(session.branchName).toBeNull();
+  });
+});
+
 describe("getSession", () => {
   it("returns the session by id", () => {
     const created = createSession(db, {

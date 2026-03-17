@@ -1,6 +1,6 @@
 import Database from "better-sqlite3";
 
-export const SCHEMA_VERSION = 3;
+export const SCHEMA_VERSION = 4;
 
 const SCHEMA = `
   CREATE TABLE IF NOT EXISTS repos (
@@ -19,7 +19,8 @@ const SCHEMA = `
     name TEXT NOT NULL,
     created_at TEXT NOT NULL DEFAULT (datetime('now')),
     last_active_at TEXT NOT NULL DEFAULT (datetime('now')),
-    sort_order INTEGER NOT NULL DEFAULT 0
+    sort_order INTEGER NOT NULL DEFAULT 0,
+    branch_name TEXT
   );
 
   CREATE TABLE IF NOT EXISTS messages (
@@ -43,6 +44,7 @@ const SCHEMA = `
 const MIGRATIONS: Record<number, string> = {
   2: "ALTER TABLE messages ADD COLUMN thinking TEXT",
   3: "ALTER TABLE sessions ADD COLUMN sort_order INTEGER NOT NULL DEFAULT 0",
+  4: "ALTER TABLE sessions ADD COLUMN branch_name TEXT",
 };
 
 export function createDatabase(dbPath: string): Database.Database {
