@@ -95,6 +95,25 @@ describe("worktree operations", () => {
       createWorktree(repoDir, "existing-branch");
       expect(() => createWorktree(repoDir, "existing-branch")).toThrow();
     });
+
+    it("symlinks .claude directory from main repo into worktree", () => {
+      const claudeDir = path.join(repoDir, ".claude");
+      fs.mkdirSync(claudeDir);
+      fs.writeFileSync(path.join(claudeDir, "settings.local.json"), '{"permissions":{}}');
+
+      const worktreePath = createWorktree(repoDir, "with-claude");
+      const worktreeClaudeDir = path.join(worktreePath, ".claude");
+
+      expect(fs.lstatSync(worktreeClaudeDir).isSymbolicLink()).toBe(true);
+      expect(fs.realpathSync(worktreeClaudeDir)).toBe(claudeDir);
+      // Permissions file is accessible through the symlink
+      expect(fs.existsSync(path.join(worktreeClaudeDir, "settings.local.json"))).toBe(true);
+    });
+
+    it("skips symlink when main repo has no .claude directory", () => {
+      const worktreePath = createWorktree(repoDir, "no-claude");
+      expect(fs.existsSync(path.join(worktreePath, ".claude"))).toBe(false);
+    });
   });
 
   describe("removeWorktree", () => {
