@@ -1,4 +1,6 @@
 import { execFileSync } from "node:child_process";
+import fs from "node:fs";
+import path from "node:path";
 
 export function sanitizeBranchName(name: string): string {
   return name
@@ -31,7 +33,18 @@ export function createWorktree(repoPath: string, branchName: string): string {
     throw new Error(`Failed to create worktree: ${message}`);
   }
 
+  symlinkClaudeDir(repoPath, worktreePath);
+
   return worktreePath;
+}
+
+/** Symlink .claude/ from the main repo into a worktree so permissions are shared */
+export function symlinkClaudeDir(repoPath: string, worktreePath: string): void {
+  const sourceClaudeDir = path.join(repoPath, ".claude");
+  if (!fs.existsSync(sourceClaudeDir)) return;
+
+  const targetClaudeDir = path.join(worktreePath, ".claude");
+  fs.symlinkSync(sourceClaudeDir, targetClaudeDir);
 }
 
 export function removeWorktree(worktreePath: string, branchName: string, repoPath: string): void {
