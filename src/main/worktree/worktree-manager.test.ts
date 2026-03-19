@@ -110,6 +110,22 @@ describe("worktree operations", () => {
       expect(fs.existsSync(path.join(worktreeClaudeDir, "settings.local.json"))).toBe(true);
     });
 
+    it("replaces tracked .claude directory with symlink when .claude is committed", () => {
+      // .claude/ is tracked by git — git worktree add copies it into the worktree
+      const claudeDir = path.join(repoDir, ".claude");
+      fs.mkdirSync(claudeDir);
+      fs.writeFileSync(path.join(claudeDir, "settings.local.json"), '{"permissions":{}}');
+      execFileSync("git", ["add", ".claude"], { cwd: repoDir });
+      execFileSync("git", ["commit", "-m", "add .claude"], { cwd: repoDir });
+
+      const worktreePath = createWorktree(repoDir, "tracked-claude");
+      const worktreeClaudeDir = path.join(worktreePath, ".claude");
+
+      // Should be a symlink, not a copied directory
+      expect(fs.lstatSync(worktreeClaudeDir).isSymbolicLink()).toBe(true);
+      expect(fs.realpathSync(worktreeClaudeDir)).toBe(claudeDir);
+    });
+
     it("skips symlink when main repo has no .claude directory", () => {
       const worktreePath = createWorktree(repoDir, "no-claude");
       expect(fs.existsSync(path.join(worktreePath, ".claude"))).toBe(false);

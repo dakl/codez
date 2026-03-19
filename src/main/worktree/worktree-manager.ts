@@ -44,6 +44,15 @@ export function symlinkClaudeDir(repoPath: string, worktreePath: string): void {
   if (!fs.existsSync(sourceClaudeDir)) return;
 
   const targetClaudeDir = path.join(worktreePath, ".claude");
+
+  // If .claude already exists in the worktree (e.g. tracked by git),
+  // remove it first so we can replace it with a symlink
+  if (fs.existsSync(targetClaudeDir)) {
+    const stat = fs.lstatSync(targetClaudeDir);
+    if (stat.isSymbolicLink()) return; // already a symlink — nothing to do
+    fs.rmSync(targetClaudeDir, { recursive: true, force: true });
+  }
+
   fs.symlinkSync(sourceClaudeDir, targetClaudeDir);
 }
 
