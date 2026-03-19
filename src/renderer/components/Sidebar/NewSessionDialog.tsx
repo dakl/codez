@@ -2,7 +2,7 @@ import { useCallback, useRef, useState } from "react";
 
 interface NewSessionDialogProps {
   repoName: string;
-  onConfirm: (branchName: string | undefined) => void;
+  onConfirm: (branchName: string | undefined) => void | Promise<void>;
   onCancel: () => void;
 }
 
@@ -23,10 +23,11 @@ export function NewSessionDialog({ repoName, onConfirm, onCancel }: NewSessionDi
 
     setLoading(true);
     try {
-      onConfirm(trimmed);
+      await onConfirm(trimmed);
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : String(err);
       setError(message);
+    } finally {
       setLoading(false);
     }
   }, [branchName, onConfirm]);
