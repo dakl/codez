@@ -46,7 +46,7 @@ function createWindow(): void {
     },
   });
 
-  const isDev = !app.isPackaged;
+  const isDev = !app.isPackaged && process.env.E2E_TEST !== "true";
   if (isDev) {
     mainWindow.loadURL("http://localhost:5174");
     mainWindow.webContents.openDevTools();

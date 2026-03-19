@@ -34,3 +34,18 @@ jobs:
       - run: npm ci
       - run: npm run rebuild:node
       - run: npx vitest run
+
+  e2e:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: python -m pip install setuptools
+      - run: npm ci
+      - run: npm run test:e2e
