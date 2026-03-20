@@ -93,6 +93,7 @@ export interface ElectronAPI {
     callback: (progress: { percent: number; bytesPerSecond: number; transferred: number; total: number }) => void,
   ) => () => void;
   onUpdateError: (callback: (info: { error: string }) => void) => () => void;
+  onMenuSettings: (callback: () => void) => () => void;
 }
 
 declare global {

@@ -9,6 +9,7 @@ import { useThemeStore } from "./stores/themeStore";
 export function App() {
   const handleStatusChange = useSessionStore((state) => state.handleStatusChange);
   const loadTheme = useThemeStore((state) => state.loadTheme);
+  const toggleSettings = useThemeStore((state) => state.toggleSettings);
 
   useGlobalShortcuts();
 
@@ -24,6 +25,12 @@ export function App() {
       unsubStatus();
     };
   }, [handleStatusChange]);
+
+  // Subscribe to menu → Settings
+  useEffect(() => {
+    if (!window.electronAPI) return;
+    return window.electronAPI.onMenuSettings(toggleSettings);
+  }, [toggleSettings]);
 
   return (
     <div className="flex h-screen select-none bg-base">
