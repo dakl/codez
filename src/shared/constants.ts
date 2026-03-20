@@ -62,4 +62,5 @@ export const IPC = {
   EVENT_UPDATE_DOWNLOADED: "updater:update-downloaded",
   EVENT_UPDATE_PROGRESS: "updater:progress",
   EVENT_UPDATE_ERROR: "updater:error",
+  EVENT_MENU_SETTINGS: "menu:settings",
 } as const;

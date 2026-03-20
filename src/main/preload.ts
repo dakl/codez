@@ -47,6 +47,7 @@ const CH = {
   EVENT_UPDATE_DOWNLOADED: "updater:update-downloaded",
   EVENT_UPDATE_PROGRESS: "updater:progress",
   EVENT_UPDATE_ERROR: "updater:error",
+  EVENT_MENU_SETTINGS: "menu:settings",
 } as const;
 
 const api = {
@@ -154,6 +155,11 @@ const api = {
     const handler = (_event: unknown, info: { error: string }) => callback(info);
     ipcRenderer.on(CH.EVENT_UPDATE_ERROR, handler);
     return () => ipcRenderer.removeListener(CH.EVENT_UPDATE_ERROR, handler);
+  },
+  onMenuSettings: (callback: () => void) => {
+    const handler = () => callback();
+    ipcRenderer.on(CH.EVENT_MENU_SETTINGS, handler);
+    return () => ipcRenderer.removeListener(CH.EVENT_MENU_SETTINGS, handler);
   },
 };
 
