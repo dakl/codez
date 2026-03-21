@@ -1,5 +1,5 @@
 import { execSync } from "node:child_process";
-import { existsSync, mkdtempSync } from "node:fs";
+import { existsSync, mkdtempSync, realpathSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { _electron as electron, type ElectronApplication } from "@playwright/test";
@@ -61,6 +61,55 @@ test("creating a session with a branch name creates a worktree on disk", async (
     encoding: "utf-8",
   });
   expect(worktreeList).toContain("test-branch");
+});
+
+test("worktreeBaseDir setting directs worktrees to a custom location", async () => {
+  const window = await app.firstWindow();
+
+  // Create a custom base directory for worktrees
+  const customBaseDir = realpathSync(mkdtempSync(path.join(tmpdir(), "codez-e2e-custom-wt-")));
+
+  // Save the worktreeBaseDir setting before creating the session
+  await window.evaluate(
+    async ([baseDir]) => {
+      await (window as any).electronAPI.saveSettings({ worktreeBaseDir: baseDir });
+    },
+    [customBaseDir],
+  );
+
+  // Create a session with a branch — worktree should go under customBaseDir
+  const session = await window.evaluate(
+    async ([repoPath]) => {
+      await (window as any).electronAPI.addRepo(repoPath);
+      return await (window as any).electronAPI.createSession(
+        repoPath,
+        "claude",
+        "custom-loc",
+      );
+    },
+    [repoDir],
+  );
+
+  const repoName = path.basename(repoDir);
+  const expectedPath = path.join(customBaseDir, `${repoName}--custom-loc`);
+
+  // Session should record the custom worktree path
+  expect((session as any).worktreePath).toBe(expectedPath);
+
+  // Worktree directory should exist on disk
+  expect(existsSync(expectedPath)).toBe(true);
+
+  // The default sibling location should NOT have been created
+  const siblingPath = `${repoDir}--custom-loc`;
+  expect(existsSync(siblingPath)).toBe(false);
+
+  // Verify git recognises the worktree
+  const worktreeList = execSync("git worktree list", {
+    cwd: repoDir,
+    encoding: "utf-8",
+  });
+  expect(worktreeList).toContain("custom-loc");
+  expect(worktreeList).toContain(expectedPath);
 });
 
 test("creating a session without a branch uses the repo directly", async () => {
