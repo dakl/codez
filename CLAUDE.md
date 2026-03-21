@@ -78,6 +78,10 @@ npm run format        # Biome format
 npm test              # Run tests
 ```
 
+### Dev Mode
+
+Always use `make dev` to start the dev app — it uses an isolated database at `~/.codez-dev/` so it's safe to run alongside the production Codez app.
+
 ### Releasing
 
 When releasing a new version, ALWAYS trigger the Release workflow after pushing:
