@@ -1,5 +1,5 @@
 import { execSync } from "node:child_process";
-import { existsSync, mkdtempSync, realpathSync } from "node:fs";
+import { existsSync, lstatSync, mkdirSync, mkdtempSync, realpathSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { _electron as electron, type ElectronApplication } from "@playwright/test";
@@ -77,6 +77,11 @@ test("worktreeBaseDir setting directs worktrees to a custom location", async () 
     [customBaseDir],
   );
 
+  // Create a .claude dir in the main repo so we can verify the symlink
+  const claudeDir = path.join(repoDir, ".claude");
+  mkdirSync(claudeDir);
+  writeFileSync(path.join(claudeDir, "settings.local.json"), '{"permissions":{}}');
+
   // Create a session with a branch — worktree should go under customBaseDir
   const session = await window.evaluate(
     async ([repoPath]) => {
@@ -110,6 +115,14 @@ test("worktreeBaseDir setting directs worktrees to a custom location", async () 
   });
   expect(worktreeList).toContain("custom-loc");
   expect(worktreeList).toContain(expectedPath);
+
+  // .claude should be symlinked from the main repo into the custom worktree
+  const worktreeClaudeDir = path.join(expectedPath, ".claude");
+  expect(existsSync(worktreeClaudeDir)).toBe(true);
+  expect(lstatSync(worktreeClaudeDir).isSymbolicLink()).toBe(true);
+  expect(realpathSync(worktreeClaudeDir)).toBe(claudeDir);
+  // Permissions file is accessible through the symlink
+  expect(existsSync(path.join(worktreeClaudeDir, "settings.local.json"))).toBe(true);
 });
 
 test("creating a session without a branch uses the repo directly", async () => {
