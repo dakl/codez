@@ -19,6 +19,8 @@ export interface AppSettings {
   agentConfigs?: Record<string, Partial<AgentConfig>>;
   theme?: ThemeId;
   appIcon?: string;
+  /** Base directory for worktrees. Defaults to sibling of repo (<repo>--<branch>). */
+  worktreeBaseDir?: string;
 }
 
 export interface ElectronAPI {
@@ -58,6 +60,7 @@ export interface ElectronAPI {
   saveShortcutOverrides: (overrides: Record<string, string>) => Promise<void>;
   getSettings: () => Promise<AppSettings>;
   saveSettings: (settings: Partial<AppSettings>) => Promise<void>;
+  selectWorktreeDir: () => Promise<string | null>;
   // Icons
   getIconDataUrls: () => Promise<Record<string, string>>;
   setAppIcon: (iconId: string) => Promise<void>;

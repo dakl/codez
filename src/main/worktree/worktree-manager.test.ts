@@ -47,6 +47,16 @@ describe("generateWorktreePath", () => {
     const result = generateWorktreePath("/Users/dan/project", "feat/login");
     expect(result).toBe("/Users/dan/project--feat-login");
   });
+
+  it("uses custom base directory when provided", () => {
+    const result = generateWorktreePath("/Users/dan/project", "feat-login", "/tmp/worktrees");
+    expect(result).toBe("/tmp/worktrees/project--feat-login");
+  });
+
+  it("uses repo basename in custom base directory", () => {
+    const result = generateWorktreePath("/Users/dan/my-app", "main", "/home/user/trees");
+    expect(result).toBe("/home/user/trees/my-app--main");
+  });
 });
 
 describe("worktree operations", () => {
@@ -129,6 +139,17 @@ describe("worktree operations", () => {
     it("skips symlink when main repo has no .claude directory", () => {
       const worktreePath = createWorktree(repoDir, "no-claude");
       expect(fs.existsSync(path.join(worktreePath, ".claude"))).toBe(false);
+    });
+
+    it("creates worktree under custom base directory when provided", () => {
+      const customBase = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), "codez-wt-custom-")));
+      const worktreePath = createWorktree(repoDir, "custom-dir", customBase);
+      const repoName = path.basename(repoDir);
+      expect(worktreePath).toBe(path.join(customBase, `${repoName}--custom-dir`));
+      expect(fs.existsSync(worktreePath)).toBe(true);
+      expect(fs.existsSync(path.join(worktreePath, "README.md"))).toBe(true);
+      // Cleanup
+      fs.rmSync(customBase, { recursive: true, force: true });
     });
   });
 

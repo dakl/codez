@@ -1,7 +1,7 @@
 .PHONY: dev build lint format test test-watch test-e2e build-release clean
 
-dev:
-	npm run dev
+dev: ## Start dev mode with isolated DB (safe to run alongside prod app)
+	E2E_DATA_DIR=$(HOME)/.codez-dev npm run dev
 
 build:
 	npm run build

@@ -115,7 +115,8 @@ export function registerIpcHandlers(options: RegisterHandlersOptions): void {
       let resolvedBranch: string | null = null;
 
       if (branchName) {
-        worktreePath = createWorktree(repoPath, branchName);
+        const settings = readSettings(settingsPath);
+        worktreePath = createWorktree(repoPath, branchName, settings.worktreeBaseDir);
         resolvedBranch = branchName;
       }
 
@@ -260,6 +261,17 @@ export function registerIpcHandlers(options: RegisterHandlersOptions): void {
 
   ipcMain.handle(IPC.SETTINGS_SAVE, (_event, settings: Record<string, unknown>) => {
     writeSettings(settingsPath, settings);
+  });
+
+  ipcMain.handle(IPC.SETTINGS_SELECT_WORKTREE_DIR, async () => {
+    const window = getMainWindow();
+    if (!window) return null;
+    const result = await dialog.showOpenDialog(window, {
+      properties: ["openDirectory", "createDirectory"],
+      message: "Select a folder for worktrees",
+    });
+    if (result.canceled || result.filePaths.length === 0) return null;
+    return result.filePaths[0];
   });
 
   ipcMain.handle(IPC.SETTINGS_GET_SHORTCUTS, () => {
