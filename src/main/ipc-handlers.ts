@@ -115,7 +115,8 @@ export function registerIpcHandlers(options: RegisterHandlersOptions): void {
       let resolvedBranch: string | null = null;
 
       if (branchName) {
-        worktreePath = createWorktree(repoPath, branchName);
+        const settings = readSettings(settingsPath);
+        worktreePath = createWorktree(repoPath, branchName, settings.worktreeBaseDir);
         resolvedBranch = branchName;
       }
 

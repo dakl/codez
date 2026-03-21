@@ -10,14 +10,18 @@ export function sanitizeBranchName(name: string): string {
     .replace(/^-+|-+$/g, "");
 }
 
-export function generateWorktreePath(repoPath: string, branchName: string): string {
+export function generateWorktreePath(repoPath: string, branchName: string, baseDir?: string): string {
   const safeName = sanitizeBranchName(branchName);
+  if (baseDir) {
+    const repoName = path.basename(repoPath);
+    return path.join(baseDir, `${repoName}--${safeName}`);
+  }
   return `${repoPath}--${safeName}`;
 }
 
-export function createWorktree(repoPath: string, branchName: string): string {
+export function createWorktree(repoPath: string, branchName: string, baseDir?: string): string {
   const safeName = sanitizeBranchName(branchName);
-  const worktreePath = generateWorktreePath(repoPath, safeName);
+  const worktreePath = generateWorktreePath(repoPath, safeName, baseDir);
 
   try {
     execFileSync("git", ["worktree", "add", worktreePath, "-b", safeName], {

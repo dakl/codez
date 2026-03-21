@@ -84,6 +84,23 @@ describe("saveShortcutOverrides", () => {
   });
 });
 
+describe("worktreeBaseDir round-trip", () => {
+  it("persists and reads worktreeBaseDir", () => {
+    writeSettings(settingsPath, { worktreeBaseDir: "/tmp/my-worktrees" });
+    const settings = readSettings(settingsPath);
+    expect(settings.worktreeBaseDir).toBe("/tmp/my-worktrees");
+  });
+
+  it("merges worktreeBaseDir without clobbering other settings", () => {
+    writeSettings(settingsPath, { voiceEnabled: true, theme: "midnight" });
+    writeSettings(settingsPath, { worktreeBaseDir: "/tmp/trees" });
+    const settings = readSettings(settingsPath);
+    expect(settings.voiceEnabled).toBe(true);
+    expect(settings.theme).toBe("midnight");
+    expect(settings.worktreeBaseDir).toBe("/tmp/trees");
+  });
+});
+
 describe("agentConfigs round-trip", () => {
   it("persists and reads defaultPermissions for claude", () => {
     const allowedTools = ["Edit", "Read", "Bash(git *)"];

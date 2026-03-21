@@ -19,6 +19,8 @@ export interface AppSettings {
   agentConfigs?: Record<string, Partial<AgentConfig>>;
   theme?: ThemeId;
   appIcon?: string;
+  /** Base directory for worktrees. Defaults to sibling of repo (<repo>--<branch>). */
+  worktreeBaseDir?: string;
 }
 
 export interface ElectronAPI {
