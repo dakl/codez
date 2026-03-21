@@ -29,6 +29,7 @@ const CH = {
   SETTINGS_SAVE_SHORTCUTS: "settings:saveShortcuts",
   SETTINGS_GET: "settings:get",
   SETTINGS_SAVE: "settings:save",
+  SETTINGS_SELECT_WORKTREE_DIR: "settings:selectWorktreeDir",
   PTY_CREATE: "pty:create",
   PTY_INPUT: "pty:input",
   PTY_RESIZE: "pty:resize",
@@ -90,6 +91,7 @@ const api = {
     ipcRenderer.invoke(CH.SETTINGS_SAVE_SHORTCUTS, overrides),
   getSettings: () => ipcRenderer.invoke(CH.SETTINGS_GET),
   saveSettings: (settings: Record<string, unknown>) => ipcRenderer.invoke(CH.SETTINGS_SAVE, settings),
+  selectWorktreeDir: () => ipcRenderer.invoke(CH.SETTINGS_SELECT_WORKTREE_DIR),
   // Icons
   getIconDataUrls: () => ipcRenderer.invoke(CH.SETTINGS_GET_ICON_DATA_URLS),
   setAppIcon: (iconId: string) => ipcRenderer.invoke(CH.SETTINGS_SET_APP_ICON, iconId),

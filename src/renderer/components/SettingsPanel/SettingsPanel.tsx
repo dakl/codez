@@ -24,6 +24,7 @@ export function SettingsPanel() {
   const [activeIcon, setActiveIcon] = useState("icon-01");
   const [iconDataUrls, setIconDataUrls] = useState<Record<string, string>>({});
   const [appVersion, setAppVersion] = useState("");
+  const [worktreeBaseDir, setWorktreeBaseDir] = useState<string | undefined>();
 
   const [updateState, setUpdateState] = useState<UpdateState>("idle");
   const [updateInfo, setUpdateInfo] = useState<UpdateInfo>({});
@@ -33,6 +34,7 @@ export function SettingsPanel() {
     if (!settingsOpen || !window.electronAPI) return;
     window.electronAPI.getSettings().then((settings) => {
       setActiveIcon(settings.appIcon ?? "icon-01");
+      setWorktreeBaseDir(settings.worktreeBaseDir);
     });
     window.electronAPI.getIconDataUrls().then(setIconDataUrls);
     window.electronAPI.getAppInfo().then((info) => setAppVersion(info.version));
@@ -102,6 +104,21 @@ export function SettingsPanel() {
   const handleQuitAndInstall = useCallback(() => {
     if (!window.electronAPI) return;
     window.electronAPI.quitAndInstall();
+  }, []);
+
+  const handleSelectWorktreeDir = useCallback(async () => {
+    if (!window.electronAPI) return;
+    const dir = await window.electronAPI.selectWorktreeDir();
+    if (dir) {
+      setWorktreeBaseDir(dir);
+      await window.electronAPI.saveSettings({ worktreeBaseDir: dir });
+    }
+  }, []);
+
+  const handleClearWorktreeDir = useCallback(async () => {
+    if (!window.electronAPI) return;
+    setWorktreeBaseDir(undefined);
+    await window.electronAPI.saveSettings({ worktreeBaseDir: undefined });
   }, []);
 
   const handleEscape = useCallback(
@@ -183,6 +200,37 @@ export function SettingsPanel() {
                 )}
               </button>
             ))}
+          </div>
+        </div>
+
+        {/* Worktree Location section */}
+        <div className="mb-6">
+          <h3 className="text-sm font-medium text-text-secondary mb-3">Worktree Location</h3>
+          <div className="rounded-lg bg-surface border border-border-subtle p-4">
+            <p className="text-[11px] text-text-muted mb-3">
+              {worktreeBaseDir
+                ? "Worktrees are created in the folder below."
+                : "Worktrees are created next to each repo by default."}
+            </p>
+            {worktreeBaseDir && (
+              <div className="flex items-center gap-2 mb-3">
+                <span className="text-xs text-text-primary font-mono truncate flex-1">{worktreeBaseDir}</span>
+                <button
+                  type="button"
+                  onClick={handleClearWorktreeDir}
+                  className="text-[10px] text-text-muted hover:text-red-400 transition-colors cursor-pointer shrink-0"
+                >
+                  Reset
+                </button>
+              </div>
+            )}
+            <button
+              type="button"
+              onClick={handleSelectWorktreeDir}
+              className="text-xs font-medium px-3 py-1.5 rounded-md bg-accent/15 text-accent hover:bg-accent/25 transition-colors cursor-pointer"
+            >
+              {worktreeBaseDir ? "Change Folder..." : "Choose Folder..."}
+            </button>
           </div>
         </div>
 
