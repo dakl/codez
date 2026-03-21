@@ -120,7 +120,7 @@ test("worktreeBaseDir setting directs worktrees to a custom location", async () 
   const worktreeClaudeDir = path.join(expectedPath, ".claude");
   expect(existsSync(worktreeClaudeDir)).toBe(true);
   expect(lstatSync(worktreeClaudeDir).isSymbolicLink()).toBe(true);
-  expect(realpathSync(worktreeClaudeDir)).toBe(claudeDir);
+  expect(realpathSync(worktreeClaudeDir)).toBe(realpathSync(claudeDir));
   // Permissions file is accessible through the symlink
   expect(existsSync(path.join(worktreeClaudeDir, "settings.local.json"))).toBe(true);
 });
