@@ -2,7 +2,7 @@
 
 ## Project Overview
 
-Codez is a macOS desktop app that wraps AI coding CLI agents (Claude Code, Mistral Vibe, Gemini CLI). It manages multiple parallel agent sessions across git worktrees with voice input, keyboard-first navigation, and file diff review.
+Codez is a macOS desktop app that wraps Claude Code's CLI. It manages multiple parallel agent sessions across git worktrees with keyboard-first navigation, a PTY-based terminal, and customizable themes.
 
 ## Tech Stack
 
@@ -10,8 +10,8 @@ Codez is a macOS desktop app that wraps AI coding CLI agents (Claude Code, Mistr
 - **Renderer**: React 19 + TypeScript + Tailwind CSS 4 + Zustand 5
 - **Build**: Vite (renderer), tsc (main process)
 - **Database**: better-sqlite3 (SQLite with WAL mode)
-- **Voice**: whisper-node (local Whisper STT via whisper.cpp)
-- **Diffs**: @git-diff-view/react
+- **Terminal**: node-pty + xterm.js
+- **Auto-updater**: electron-updater (GitHub releases)
 - **Linting/Formatting**: Biome
 - **Testing**: vitest (unit/integration), Playwright (E2E)
 - **Packaging**: electron-builder
@@ -47,8 +47,7 @@ Every feature is driven by tests. No implementation code without a failing test 
 | Settings persistence | Unit tests for read/write round-trips |
 | Session lifecycle | Integration tests with mocked adapter |
 | Zustand stores | Unit tests for state transitions |
-| Shortcut system | Unit tests for conflict detection, key building |
-| Diff tracker | Unit tests with fixture git diff output |
+| Global shortcuts | Unit tests for key binding hooks |
 | React components | Component tests with React Testing Library |
 | Full app flows | E2E with Playwright |
 
@@ -100,7 +99,7 @@ This builds the DMG on macOS CI and attaches it to the GitHub release. Without t
 src/
 ├── shared/           # Types shared between main and renderer
 │   ├── types.ts      # ElectronAPI interface, app types
-│   ├── agent-types.ts # AgentEvent, SessionInfo, ChangedFile
+│   ├── agent-types.ts # AgentEvent, SessionInfo
 │   └── constants.ts  # IPC channel names
 ├── main/             # Electron main process
 │   ├── index.ts      # App entry, window creation
@@ -108,55 +107,76 @@ src/
 │   ├── ipc-handlers.ts
 │   ├── paths.ts
 │   ├── settings.ts
+│   ├── updater.ts    # Auto-updater (electron-updater)
+│   ├── dock.ts       # Dock icon customization
 │   ├── db/           # SQLite database layer
-│   ├── agents/       # Agent abstraction + adapters
+│   ├── agents/       # Claude adapter + stream parser + agent registry
 │   ├── worktree/     # Git worktree management
-│   ├── voice/        # Whisper STT
-│   ├── file-watcher/ # Diff tracking
-│   └── services/     # Session lifecycle, notifications
+│   └── services/     # PTY manager, session lifecycle, sideband detector
 ├── renderer/         # React UI
-│   ├── stores/       # Zustand state stores
-│   ├── hooks/        # Custom React hooks
-│   ├── components/   # UI components
+│   ├── stores/       # Zustand state stores (session, repo, theme)
+│   ├── hooks/        # Global shortcuts, chord shortcuts
+│   ├── components/   # SessionView, Sidebar, SettingsPanel, Tooltip
+│   ├── themes.ts     # Theme definitions (6 themes)
 │   └── styles/
 └── __fixtures__/     # Test fixture files
 ```
 
 ### Agent Abstraction
 
-Each CLI agent has an adapter that normalizes the interface:
+Currently only Claude Code is supported. The adapter normalizes CLI interaction:
 
 ```
 AgentAdapter (abstract class)
-├── ClaudeAdapter     # claude -p "msg" --output-format stream-json
-├── MistralAdapter    # stub
-└── GeminiAdapter     # stub
+└── ClaudeAdapter     # claude -p "msg" --output-format stream-json
 ```
 
-Key design: Claude Code in `-p` mode exits after each turn. Multi-turn conversation spawns successive `claude -p "msg" --resume <id>` processes. No stdin management — just spawn, stream JSON, wait for exit.
+Key design: Claude Code in `-p` mode exits after each turn. Multi-turn conversation spawns successive `claude -p "msg" --resume <id>` processes. The agent runs inside a PTY (node-pty) rendered via xterm.js in the UI.
+
+### PTY-Based Terminal
+
+Each session runs Claude Code inside a PTY managed by `PtyManager`. The `SidebandDetector` monitors PTY output to detect when the agent is waiting for input (500ms silence heuristic), which updates the session status. The terminal is rendered in the UI via xterm.js (`TerminalView`).
 
 ### IPC Convention
 
 Channel names follow `<domain>:<action>`:
-- `sessions:create`, `sessions:list`, `sessions:delete`
-- `voice:startRecording`, `voice:stopAndTranscribe`
-- `settings:getShortcuts`, `settings:saveShortcuts`
+- `sessions:create`, `sessions:list`, `sessions:delete`, `sessions:archive`, `sessions:restore`
+- `pty:create`, `pty:input`, `pty:resize`, `pty:kill`
+- `repos:add`, `repos:remove`, `repos:list`, `repos:selectDialog`, `repos:getBranch`
+- `settings:get`, `settings:save`, `settings:getShortcuts`, `settings:saveShortcuts`
+- `updater:check`, `updater:download`, `updater:quitAndInstall`
+- `app:getInfo`
 
 ### Worktree Management
 
-Codex manages worktrees (not individual agents' worktree flags) for cross-agent pluggability:
-- Created at `<repo>/.codez/worktrees/<session-id>/`
+Codez manages worktrees for session isolation:
+- Created at `<repo>/.codez/worktrees/<session-id>/` (configurable base dir)
+- Symlinks `.claude/` from the main repo into the worktree
 - Agent process `cwd` = worktree path
 - Cleaned up on session deletion
 
 ### Session Status Flow
 
 ```
-idle → running → waiting_for_input → running → ... → completed
-                → error
+idle → running → waiting_for_input → running → ... → archived (on clean exit)
+                → error (on non-zero exit)
 ```
 
-`waiting_for_input` triggers: macOS notification + visual banner + sidebar badge.
+`waiting_for_input` is detected by the SidebandDetector (500ms PTY silence). Clean process exit (code 0) auto-archives the session.
+
+### Themes and Dock Icons
+
+- 6 built-in themes: midnight, ember, forest, snow, sand, dawn
+- 9 dock icon variants (icon-01 through icon-09), selectable in settings
+
+### Database Schema (v4)
+
+3 tables:
+- `repos` — tracked repositories (path, name, last_used)
+- `sessions` — agent sessions (id, repo_path, worktree_path, agent_type, status, name, branch_name, sort_order, ...)
+- `messages` — session messages (role, content, tool_name, tool_id, is_error, thinking, ...)
+
+WAL mode and foreign keys enabled. Migrations are versioned inline.
 
 ## Code Conventions
 
@@ -169,7 +189,6 @@ idle → running → waiting_for_input → running → ... → completed
 ### Patterns from PaperShelf
 
 These patterns are ported from ~/dev/papershelf and should be maintained:
-- **Shortcut store**: Zustand store with defaults, user overrides, conflict detection, Cmd-hold hint visibility
 - **Preload bridge**: Typed `ElectronAPI` interface exposed via `contextBridge`
 - **IPC handlers**: Registered in a single `ipc-handlers.ts` file
 - **Settings**: JSON file persistence with merge semantics
@@ -210,12 +229,21 @@ Stream event types (inside `event` field, raw Claude API events):
 
 Process exits with code 0 on completion. Multi-turn requires new process with `--continue` or `--resume`.
 
-### Mistral Vibe (future)
-```bash
-vibe --prompt "text" --output streaming
-```
+## Roadmap / Future Plans
 
-### Gemini CLI (future)
+These are not yet implemented but may be added later. Do not build toward these unless explicitly asked.
+
+### Additional Agent Support
+
 ```bash
+# Mistral Vibe
+vibe --prompt "text" --output streaming
+
+# Gemini CLI
 gemini -p "text" --output-format streaming-json
 ```
+
+### Other Ideas
+
+- File diff review (changed file tracking per session)
+- macOS notifications on `waiting_for_input`
