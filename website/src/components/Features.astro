@@ -1,0 +1,146 @@
+---
+const features = [
+  {
+    icon: "layers",
+    title: "Parallel Sessions",
+    description:
+      "Run multiple AI coding agents simultaneously, each in its own git worktree. Work on several tasks at once.",
+  },
+  {
+    icon: "database",
+    title: "Persistent History",
+    description:
+      "Every session is saved to a local SQLite database. Resume conversations or review past work anytime.",
+  },
+  {
+    icon: "move",
+    title: "Drag & Drop Reordering",
+    description:
+      "Organize your sidebar by dragging sessions into the order that makes sense for your workflow.",
+  },
+  {
+    icon: "archive",
+    title: "Session Archiving",
+    description:
+      "Archive completed sessions to keep your sidebar clean without losing any history.",
+  },
+  {
+    icon: "palette",
+    title: "6 Themes",
+    description:
+      "Choose from 3 dark and 3 light themes — Midnight, Ember, Forest, Snow, Sand, and Dawn.",
+  },
+  {
+    icon: "command",
+    title: "Keyboard Shortcuts",
+    description:
+      "Navigate, create, and manage sessions entirely from the keyboard. Fully customizable bindings.",
+  },
+];
+
+const iconPaths: Record<string, string> = {
+  layers:
+    '<rect x="2" y="7" width="20" height="5" rx="1"/><rect x="4" y="2" width="16" height="5" rx="1" opacity="0.5"/><rect x="4" y="12" width="16" height="5" rx="1" opacity="0.5"/>',
+  database:
+    '<ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/>',
+  move: '<polyline points="5 9 2 12 5 15"/><polyline points="9 5 12 2 15 5"/><polyline points="15 19 12 22 9 19"/><polyline points="19 9 22 12 19 15"/><line x1="2" y1="12" x2="22" y2="12"/><line x1="12" y1="2" x2="12" y2="22"/>',
+  archive:
+    '<polyline points="21 8 21 21 3 21 3 8"/><rect x="1" y="3" width="22" height="5"/><line x1="10" y1="12" x2="14" y2="12"/>',
+  palette:
+    '<circle cx="13.5" cy="6.5" r="0.5" fill="currentColor"/><circle cx="17.5" cy="10.5" r="0.5" fill="currentColor"/><circle cx="8.5" cy="7.5" r="0.5" fill="currentColor"/><circle cx="6.5" cy="12" r="0.5" fill="currentColor"/><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.926 0 1.648-.746 1.648-1.688 0-.437-.18-.835-.437-1.125-.29-.289-.438-.652-.438-1.125a1.64 1.64 0 0 1 1.668-1.668h1.996c3.051 0 5.555-2.503 5.555-5.554C21.965 6.012 17.461 2 12 2z"/>',
+  command:
+    '<path d="M18 3a3 3 0 0 0-3 3v12a3 3 0 0 0 3 3 3 3 0 0 0 3-3 3 3 0 0 0-3-3H6a3 3 0 0 0-3 3 3 3 0 0 0 3 3 3 3 0 0 0 3-3V6a3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3h12a3 3 0 0 0 3-3 3 3 0 0 0-3-3z"/>',
+};
+---
+
+<section id="features">
+  <div class="container">
+    <h2 class="section-title">Built for power users</h2>
+    <p class="section-subtitle">
+      Everything you need to manage AI-assisted coding at scale.
+    </p>
+    <div class="features-grid">
+      {
+        features.map((feature) => (
+          <div class="feature-card">
+            <div class="feature-icon">
+              <svg
+                width="24"
+                height="24"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                set:html={iconPaths[feature.icon]}
+              />
+            </div>
+            <h3 class="feature-title">{feature.title}</h3>
+            <p class="feature-description">{feature.description}</p>
+          </div>
+        ))
+      }
+    </div>
+  </div>
+</section>
+
+<style>
+  #features {
+    background: var(--surface);
+  }
+
+  .features-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 24px;
+  }
+
+  .feature-card {
+    padding: 28px;
+    border-radius: var(--radius);
+    border: 1px solid var(--border-subtle);
+    background: var(--base);
+    transition: border-color 0.15s ease;
+  }
+
+  .feature-card:hover {
+    border-color: var(--border);
+  }
+
+  .feature-icon {
+    width: 44px;
+    height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--accent-muted);
+    color: var(--accent);
+    border-radius: var(--radius-sm);
+    margin-bottom: 16px;
+  }
+
+  .feature-title {
+    font-size: 1.1rem;
+    font-weight: 650;
+    margin-bottom: 8px;
+  }
+
+  .feature-description {
+    font-size: 0.95rem;
+    color: var(--text-secondary);
+    line-height: 1.5;
+  }
+
+  @media (max-width: 900px) {
+    .features-grid {
+      grid-template-columns: repeat(2, 1fr);
+    }
+  }
+
+  @media (max-width: 560px) {
+    .features-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>
