@@ -68,7 +68,8 @@ export function SessionView() {
   if (!activeSessionId || !session) {
     return (
       <div className="flex-1 flex items-center justify-center">
-        <div className="text-center">
+        {/* Offset left by half the sidebar width (w-60 = 240px) to center in the full window */}
+        <div className="text-center -ml-60">
           <h1 className="text-2xl font-semibold text-text-primary mb-2">Codez</h1>
           <p className="text-sm text-text-muted">Press ⌘N to start a new session</p>
         </div>

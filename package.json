@@ -19,6 +19,7 @@
     "test": "npm run rebuild:node && vitest run",
     "test:watch": "npm run rebuild:node && vitest",
     "test:e2e": "npm run rebuild:electron && npm run build && npx playwright test",
+    "screenshots": "npm run rebuild:electron && npm run build && npx playwright test e2e/screenshots.spec.ts",
     "lint": "biome check src/",
     "lint:fix": "biome check --write src/",
     "format": "biome format --write src/",

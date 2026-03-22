@@ -1,0 +1,109 @@
+---
+const base = import.meta.env.BASE_URL;
+---
+
+<section id="download">
+  <div class="container download-inner">
+    <img
+      src={`${base}/icons/icon.png`}
+      alt="Codez app icon"
+      class="download-icon"
+      width="80"
+      height="80"
+    />
+    <h2 class="section-title">Get Codez</h2>
+    <p class="section-subtitle">Free, open source, and built for macOS.</p>
+    <a
+      href="https://github.com/dakl/codez/releases/latest"
+      class="btn btn-primary btn-lg"
+    >
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+      Download DMG
+    </a>
+    <div class="requirements">
+      <h3>Requirements</h3>
+      <ul>
+        <li>macOS 13+ (Apple Silicon)</li>
+        <li><a href="https://docs.anthropic.com/en/docs/claude-code/overview">Claude Code</a> CLI installed</li>
+      </ul>
+    </div>
+    <div class="license">
+      Released under the <a href="https://github.com/dakl/codez/blob/main/LICENSE">MIT License</a>
+    </div>
+  </div>
+</section>
+
+<footer class="site-footer">
+  <div class="container">
+    <span>Made with ❤️ in 🇸🇪 by Daniel Klevebring</span>
+  </div>
+</footer>
+
+<style>
+  #download {
+    text-align: center;
+    background: var(--surface);
+  }
+
+  .download-inner {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .download-icon {
+    width: 80px;
+    height: 80px;
+    border-radius: 18px;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
+    margin-bottom: 20px;
+  }
+
+  .btn-lg {
+    padding: 14px 32px;
+    font-size: 1.1rem;
+  }
+
+  .requirements {
+    margin-top: 40px;
+    text-align: left;
+    max-width: 320px;
+  }
+
+  .requirements h3 {
+    font-size: 0.95rem;
+    font-weight: 650;
+    margin-bottom: 8px;
+    color: var(--text-primary);
+  }
+
+  .requirements ul {
+    list-style: none;
+    padding: 0;
+  }
+
+  .requirements li {
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+    padding: 4px 0;
+  }
+
+  .requirements li::before {
+    content: "→ ";
+    color: var(--accent);
+  }
+
+  .license {
+    margin-top: 24px;
+    font-size: 0.85rem;
+    color: var(--text-muted);
+  }
+
+  .site-footer {
+    padding: 24px;
+    text-align: center;
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    border-top: 1px solid var(--border-subtle);
+  }
+</style>

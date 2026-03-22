@@ -1,0 +1,232 @@
+---
+const themes = [
+  {
+    name: "Midnight",
+    mode: "dark",
+    base: "#0F1117",
+    sidebar: "#12141C",
+    surface: "#1A1D27",
+    text: "#E8ECF4",
+    textSecondary: "#9BA2B8",
+    accent: "#6C5CE7",
+    border: "#232738",
+  },
+  {
+    name: "Ember",
+    mode: "dark",
+    base: "#151010",
+    sidebar: "#1A1212",
+    surface: "#241A1A",
+    text: "#F4E8E8",
+    textSecondary: "#B8A09A",
+    accent: "#E77C5C",
+    border: "#382420",
+  },
+  {
+    name: "Forest",
+    mode: "dark",
+    base: "#0D1210",
+    sidebar: "#101814",
+    surface: "#162018",
+    text: "#E4F0E8",
+    textSecondary: "#9AB8A4",
+    accent: "#34D399",
+    border: "#1E3428",
+  },
+  {
+    name: "Snow",
+    mode: "light",
+    base: "#FAFBFE",
+    sidebar: "#F0F2F8",
+    surface: "#FFFFFF",
+    text: "#1A1D2E",
+    textSecondary: "#5C6380",
+    accent: "#6C5CE7",
+    border: "#E2E4EC",
+  },
+  {
+    name: "Sand",
+    mode: "light",
+    base: "#FBF8F4",
+    sidebar: "#F2ECE4",
+    surface: "#FFFDF8",
+    text: "#2E261A",
+    textSecondary: "#7A6E5C",
+    accent: "#D97706",
+    border: "#E4DCD0",
+  },
+  {
+    name: "Dawn",
+    mode: "light",
+    base: "#FDF8FA",
+    sidebar: "#F6EDF2",
+    surface: "#FFFAFC",
+    text: "#2E1A24",
+    textSecondary: "#806070",
+    accent: "#E74C8B",
+    border: "#E8D8E0",
+  },
+];
+---
+
+<section id="themes">
+  <div class="container">
+    <h2 class="section-title">Pick your vibe</h2>
+    <p class="section-subtitle">
+      6 carefully crafted themes — 3 dark, 3 light — so the app feels like yours.
+    </p>
+    <div class="themes-grid">
+      {
+        themes.map((theme) => (
+          <div
+            class="theme-card"
+            style={`background: ${theme.base}; border-color: ${theme.border};`}
+          >
+            <div class="theme-mockup">
+              <div
+                class="mockup-sidebar"
+                style={`background: ${theme.sidebar}; border-color: ${theme.border};`}
+              >
+                <div
+                  class="mockup-item active"
+                  style={`background: ${theme.surface};`}
+                />
+                <div class="mockup-item" style={`background: ${theme.sidebar};`} />
+                <div class="mockup-item" style={`background: ${theme.sidebar};`} />
+              </div>
+              <div class="mockup-main" style={`background: ${theme.base};`}>
+                <div
+                  class="mockup-line wide"
+                  style={`background: ${theme.text}; opacity: 0.15;`}
+                />
+                <div
+                  class="mockup-line medium"
+                  style={`background: ${theme.text}; opacity: 0.1;`}
+                />
+                <div
+                  class="mockup-line short"
+                  style={`background: ${theme.accent}; opacity: 0.25;`}
+                />
+              </div>
+            </div>
+            <div class="theme-info">
+              <span class="theme-name" style={`color: ${theme.text};`}>
+                {theme.name}
+              </span>
+              <span
+                class="theme-mode"
+                style={`color: ${theme.textSecondary};`}
+              >
+                {theme.mode}
+              </span>
+            </div>
+            <div class="theme-accent-bar" style={`background: ${theme.accent};`} />
+          </div>
+        ))
+      }
+    </div>
+  </div>
+</section>
+
+<style>
+  .themes-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 20px;
+  }
+
+  .theme-card {
+    border-radius: var(--radius);
+    border: 1px solid;
+    overflow: hidden;
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+  }
+
+  .theme-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+  }
+
+  .theme-mockup {
+    display: flex;
+    height: 100px;
+    padding: 10px;
+    gap: 8px;
+  }
+
+  .mockup-sidebar {
+    width: 35%;
+    border-radius: 6px;
+    border: 1px solid;
+    padding: 8px 6px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .mockup-item {
+    height: 10px;
+    border-radius: 4px;
+  }
+
+  .mockup-main {
+    flex: 1;
+    border-radius: 6px;
+    padding: 12px 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .mockup-line {
+    height: 6px;
+    border-radius: 3px;
+  }
+
+  .mockup-line.wide {
+    width: 80%;
+  }
+
+  .mockup-line.medium {
+    width: 60%;
+  }
+
+  .mockup-line.short {
+    width: 40%;
+  }
+
+  .theme-info {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 14px 10px;
+  }
+
+  .theme-name {
+    font-weight: 650;
+    font-size: 0.95rem;
+  }
+
+  .theme-mode {
+    font-size: 0.8rem;
+    text-transform: capitalize;
+  }
+
+  .theme-accent-bar {
+    height: 3px;
+  }
+
+  @media (max-width: 900px) {
+    .themes-grid {
+      grid-template-columns: repeat(2, 1fr);
+    }
+  }
+
+  @media (max-width: 560px) {
+    .themes-grid {
+      grid-template-columns: 1fr;
+      max-width: 360px;
+      margin: 0 auto;
+    }
+  }
+</style>
