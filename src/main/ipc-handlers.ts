@@ -2,9 +2,11 @@ import { execFileSync, spawn } from "node:child_process";
 import fs from "node:fs";
 import type Database from "better-sqlite3";
 import { app, type BrowserWindow, dialog, ipcMain } from "electron";
+import { getFonts2 } from "font-list";
 import * as pty from "node-pty";
 import type { AgentType } from "../shared/agent-types.js";
 import { IPC } from "../shared/constants.js";
+import type { FontInfo } from "../shared/types.js";
 import { createMessage, deleteMessagesBySession, listMessages } from "./db/messages.js";
 import { createRepo, deleteRepo, listRepos } from "./db/repos.js";
 import {
@@ -280,6 +282,37 @@ export function registerIpcHandlers(options: RegisterHandlersOptions): void {
 
   ipcMain.handle(IPC.SETTINGS_SAVE_SHORTCUTS, (_event, overrides: Record<string, string>) => {
     saveShortcutOverrides(settingsPath, overrides);
+  });
+
+  // --- Fonts ---
+
+  let cachedFonts: FontInfo[] | null = null;
+
+  ipcMain.handle(IPC.FONTS_LIST, async () => {
+    if (cachedFonts) return cachedFonts;
+
+    const bundledFonts: FontInfo[] = [
+      { familyName: "Geist", monospace: false },
+      { familyName: "Geist Mono", monospace: true },
+    ];
+
+    try {
+      const systemFonts = await getFonts2({ disableQuoting: true });
+      const seenNames = new Set(bundledFonts.map((f) => f.familyName));
+      const dedupedSystem: FontInfo[] = [];
+      for (const font of systemFonts) {
+        if (!seenNames.has(font.familyName)) {
+          seenNames.add(font.familyName);
+          dedupedSystem.push({ familyName: font.familyName, monospace: font.monospace });
+        }
+      }
+      dedupedSystem.sort((a, b) => a.familyName.localeCompare(b.familyName));
+      cachedFonts = [...bundledFonts, ...dedupedSystem];
+    } catch {
+      cachedFonts = bundledFonts;
+    }
+
+    return cachedFonts;
   });
 
   // --- Icons ---

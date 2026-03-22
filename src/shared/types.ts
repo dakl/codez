@@ -8,6 +8,11 @@ export interface RepoInfo {
 
 export type ThemeId = "midnight" | "ember" | "forest" | "snow" | "sand" | "dawn";
 
+export interface FontInfo {
+  familyName: string;
+  monospace: boolean;
+}
+
 export interface AppSettings {
   shortcuts?: Record<string, string>;
   selectedRepoPath?: string;
@@ -18,6 +23,10 @@ export interface AppSettings {
   additionalDirs?: string[];
   agentConfigs?: Record<string, Partial<AgentConfig>>;
   theme?: ThemeId;
+  fontSans?: string;
+  fontMono?: string;
+  fontSizeMono?: number;
+  terminalLineHeight?: number;
   appIcon?: string;
   /** Base directory for worktrees. Defaults to sibling of repo (<repo>--<branch>). */
   worktreeBaseDir?: string;
@@ -61,6 +70,9 @@ export interface ElectronAPI {
   getSettings: () => Promise<AppSettings>;
   saveSettings: (settings: Partial<AppSettings>) => Promise<void>;
   selectWorktreeDir: () => Promise<string | null>;
+  // Fonts
+  listFonts: () => Promise<FontInfo[]>;
+
   // Icons
   getIconDataUrls: () => Promise<Record<string, string>>;
   setAppIcon: (iconId: string) => Promise<void>;

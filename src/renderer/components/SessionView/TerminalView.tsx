@@ -3,6 +3,7 @@ import { FitAddon } from "@xterm/addon-fit";
 import { type ITheme, Terminal } from "@xterm/xterm";
 import "@xterm/xterm/css/xterm.css";
 import { useEffect, useRef } from "react";
+import { useFontStore } from "../../stores/fontStore";
 import { useThemeStore } from "../../stores/themeStore";
 import { getThemeById, type ThemeDefinition } from "../../themes";
 
@@ -73,6 +74,9 @@ export function TerminalView({ sessionId, agentType, worktreePath, isActive }: T
   const isActiveRef = useRef(isActive);
   const pendingWritesRef = useRef<string[]>([]);
   const activeThemeId = useThemeStore((state) => state.activeThemeId);
+  const fontMono = useFontStore((state) => state.fontMono);
+  const fontSizeMono = useFontStore((state) => state.fontSizeMono);
+  const terminalLineHeight = useFontStore((state) => state.terminalLineHeight);
 
   isActiveRef.current = isActive;
 
@@ -96,10 +100,11 @@ export function TerminalView({ sessionId, agentType, worktreePath, isActive }: T
       if (disposed) return;
 
       const appTheme = getThemeById(activeThemeId);
+      const currentFontState = useFontStore.getState();
       terminal = new Terminal({
-        fontFamily: "Geist Mono, monospace",
-        fontSize: 13,
-        lineHeight: 1.4,
+        fontFamily: `"${currentFontState.fontMono}", monospace`,
+        fontSize: currentFontState.fontSizeMono,
+        lineHeight: currentFontState.terminalLineHeight,
         theme: buildTerminalTheme(appTheme),
         cursorBlink: true,
         allowProposedApi: true,
@@ -195,6 +200,39 @@ export function TerminalView({ sessionId, agentType, worktreePath, isActive }: T
     const appTheme = getThemeById(activeThemeId);
     terminalRef.current.options.theme = buildTerminalTheme(appTheme);
   }, [activeThemeId]);
+
+  // Update terminal font when code font changes
+  useEffect(() => {
+    if (!terminalRef.current) return;
+    terminalRef.current.options.fontFamily = `"${fontMono}", monospace`;
+    try {
+      fitAddonRef.current?.fit();
+    } catch {
+      // fit() can throw during layout
+    }
+  }, [fontMono]);
+
+  // Update terminal font size when code font size changes
+  useEffect(() => {
+    if (!terminalRef.current) return;
+    terminalRef.current.options.fontSize = fontSizeMono;
+    try {
+      fitAddonRef.current?.fit();
+    } catch {
+      // fit() can throw during layout
+    }
+  }, [fontSizeMono]);
+
+  // Update terminal line height when setting changes
+  useEffect(() => {
+    if (!terminalRef.current) return;
+    terminalRef.current.options.lineHeight = terminalLineHeight;
+    try {
+      fitAddonRef.current?.fit();
+    } catch {
+      // fit() can throw during layout
+    }
+  }, [terminalLineHeight]);
 
   // Re-fit, flush pending writes, scroll to bottom, and focus when becoming active
   useEffect(() => {

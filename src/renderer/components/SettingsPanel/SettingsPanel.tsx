@@ -1,7 +1,10 @@
+import type { FontInfo } from "@shared/types";
 import { useCallback, useEffect, useState } from "react";
+import { useFontStore } from "../../stores/fontStore";
 import { useThemeStore } from "../../stores/themeStore";
 import { themes } from "../../themes";
 import { Tooltip } from "../Tooltip";
+import { FontSelector } from "./FontSelector";
 import { ThemeSwatch } from "./ThemeSwatch";
 
 const ICON_IDS = Array.from({ length: 9 }, (_, i) => `icon-0${i + 1}`);
@@ -21,6 +24,16 @@ export function SettingsPanel() {
   const activeThemeId = useThemeStore((state) => state.activeThemeId);
   const setTheme = useThemeStore((state) => state.setTheme);
 
+  const fontSans = useFontStore((state) => state.fontSans);
+  const fontMono = useFontStore((state) => state.fontMono);
+  const fontSizeMono = useFontStore((state) => state.fontSizeMono);
+  const terminalLineHeight = useFontStore((state) => state.terminalLineHeight);
+  const setFontSans = useFontStore((state) => state.setFontSans);
+  const setFontMono = useFontStore((state) => state.setFontMono);
+  const setFontSizeMono = useFontStore((state) => state.setFontSizeMono);
+  const setTerminalLineHeight = useFontStore((state) => state.setTerminalLineHeight);
+
+  const [fonts, setFonts] = useState<FontInfo[]>([]);
   const [activeIcon, setActiveIcon] = useState("icon-01");
   const [iconDataUrls, setIconDataUrls] = useState<Record<string, string>>({});
   const [appVersion, setAppVersion] = useState("");
@@ -37,6 +50,7 @@ export function SettingsPanel() {
       setWorktreeBaseDir(settings.worktreeBaseDir);
     });
     window.electronAPI.getIconDataUrls().then(setIconDataUrls);
+    window.electronAPI.listFonts().then(setFonts);
     window.electronAPI.getAppInfo().then((info) => setAppVersion(info.version));
   }, [settingsOpen]);
 
@@ -190,6 +204,45 @@ export function SettingsPanel() {
             >
               {worktreeBaseDir ? "Change Folder..." : "Choose Folder..."}
             </button>
+          </div>
+        </div>
+
+        {/* Fonts section */}
+        <div className="mb-6">
+          <h3 className="text-sm font-medium text-text-secondary mb-3">Fonts</h3>
+          <div className="rounded-lg bg-surface border border-border-subtle p-4 space-y-3">
+            <FontSelector label="UI Font" value={fontSans} fonts={fonts} onChange={setFontSans} />
+            <FontSelector label="Code Font" value={fontMono} fonts={fonts} onChange={setFontMono} />
+            <div>
+              <label className="flex items-center justify-between text-xs text-text-secondary mb-1">
+                <span>Code Font Size</span>
+                <span className="text-text-muted">{fontSizeMono}px</span>
+              </label>
+              <input
+                type="range"
+                min={10}
+                max={24}
+                step={1}
+                value={fontSizeMono}
+                onChange={(event) => setFontSizeMono(Number(event.target.value))}
+                className="w-full accent-accent"
+              />
+            </div>
+            <div>
+              <label className="flex items-center justify-between text-xs text-text-secondary mb-1">
+                <span>Line Height</span>
+                <span className="text-text-muted">{terminalLineHeight.toFixed(1)}</span>
+              </label>
+              <input
+                type="range"
+                min={1.0}
+                max={2.0}
+                step={0.1}
+                value={terminalLineHeight}
+                onChange={(event) => setTerminalLineHeight(Number(event.target.value))}
+                className="w-full accent-accent"
+              />
+            </div>
           </div>
         </div>
 
