@@ -3,19 +3,22 @@ import { SessionView } from "./components/SessionView/SessionView";
 import { SettingsPanel } from "./components/SettingsPanel/SettingsPanel";
 import { Sidebar } from "./components/Sidebar/Sidebar";
 import { useGlobalShortcuts } from "./hooks/useGlobalShortcuts";
+import { useFontStore } from "./stores/fontStore";
 import { useSessionStore } from "./stores/sessionStore";
 import { useThemeStore } from "./stores/themeStore";
 
 export function App() {
   const handleStatusChange = useSessionStore((state) => state.handleStatusChange);
   const loadTheme = useThemeStore((state) => state.loadTheme);
+  const loadFonts = useFontStore((state) => state.loadFonts);
   const toggleSettings = useThemeStore((state) => state.toggleSettings);
 
   useGlobalShortcuts();
 
   useEffect(() => {
     loadTheme();
-  }, [loadTheme]);
+    loadFonts();
+  }, [loadTheme, loadFonts]);
 
   // Subscribe to session status changes (driven by sideband detector)
   useEffect(() => {

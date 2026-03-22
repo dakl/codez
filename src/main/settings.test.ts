@@ -101,6 +101,50 @@ describe("worktreeBaseDir round-trip", () => {
   });
 });
 
+describe("font settings round-trip", () => {
+  it("persists and reads fontSans and fontMono", () => {
+    writeSettings(settingsPath, { fontSans: "Inter", fontMono: "JetBrains Mono" });
+    const settings = readSettings(settingsPath);
+    expect(settings.fontSans).toBe("Inter");
+    expect(settings.fontMono).toBe("JetBrains Mono");
+  });
+
+  it("merges font settings without clobbering other settings", () => {
+    writeSettings(settingsPath, { voiceEnabled: true, theme: "midnight" });
+    writeSettings(settingsPath, { fontSans: "Inter" });
+    const settings = readSettings(settingsPath);
+    expect(settings.voiceEnabled).toBe(true);
+    expect(settings.theme).toBe("midnight");
+    expect(settings.fontSans).toBe("Inter");
+  });
+
+  it("allows updating fontMono independently of fontSans", () => {
+    writeSettings(settingsPath, { fontSans: "Inter", fontMono: "Fira Code" });
+    writeSettings(settingsPath, { fontMono: "JetBrains Mono" });
+    const settings = readSettings(settingsPath);
+    expect(settings.fontSans).toBe("Inter");
+    expect(settings.fontMono).toBe("JetBrains Mono");
+  });
+});
+
+describe("font size and line height round-trip", () => {
+  it("persists and reads fontSizeMono and terminalLineHeight", () => {
+    writeSettings(settingsPath, { fontSizeMono: 14, terminalLineHeight: 1.6 });
+    const settings = readSettings(settingsPath);
+    expect(settings.fontSizeMono).toBe(14);
+    expect(settings.terminalLineHeight).toBe(1.6);
+  });
+
+  it("merges font size settings without clobbering other settings", () => {
+    writeSettings(settingsPath, { voiceEnabled: true, fontSans: "Inter" });
+    writeSettings(settingsPath, { fontSizeMono: 16 });
+    const settings = readSettings(settingsPath);
+    expect(settings.voiceEnabled).toBe(true);
+    expect(settings.fontSans).toBe("Inter");
+    expect(settings.fontSizeMono).toBe(16);
+  });
+});
+
 describe("agentConfigs round-trip", () => {
   it("persists and reads defaultPermissions for claude", () => {
     const allowedTools = ["Edit", "Read", "Bash(git *)"];

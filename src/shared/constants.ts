@@ -36,6 +36,8 @@ export const IPC = {
   SETTINGS_GET: "settings:get",
   SETTINGS_SAVE: "settings:save",
   SETTINGS_SELECT_WORKTREE_DIR: "settings:selectWorktreeDir",
+  // Fonts
+  FONTS_LIST: "fonts:list",
   // Icons
   SETTINGS_GET_ICON_DATA_URLS: "settings:getIconDataUrls",
   SETTINGS_SET_APP_ICON: "settings:setAppIcon",

@@ -34,6 +34,7 @@ const CH = {
   PTY_INPUT: "pty:input",
   PTY_RESIZE: "pty:resize",
   PTY_KILL: "pty:kill",
+  FONTS_LIST: "fonts:list",
   SETTINGS_GET_ICON_DATA_URLS: "settings:getIconDataUrls",
   SETTINGS_SET_APP_ICON: "settings:setAppIcon",
   APP_GET_INFO: "app:getInfo",
@@ -92,6 +93,9 @@ const api = {
   getSettings: () => ipcRenderer.invoke(CH.SETTINGS_GET),
   saveSettings: (settings: Record<string, unknown>) => ipcRenderer.invoke(CH.SETTINGS_SAVE, settings),
   selectWorktreeDir: () => ipcRenderer.invoke(CH.SETTINGS_SELECT_WORKTREE_DIR),
+  // Fonts
+  listFonts: () => ipcRenderer.invoke(CH.FONTS_LIST),
+
   // Icons
   getIconDataUrls: () => ipcRenderer.invoke(CH.SETTINGS_GET_ICON_DATA_URLS),
   setAppIcon: (iconId: string) => ipcRenderer.invoke(CH.SETTINGS_SET_APP_ICON, iconId),
