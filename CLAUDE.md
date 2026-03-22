@@ -228,3 +228,22 @@ Stream event types (inside `event` field, raw Claude API events):
 - `message_stop` — message ends
 
 Process exits with code 0 on completion. Multi-turn requires new process with `--continue` or `--resume`.
+
+## Roadmap / Future Plans
+
+These are not yet implemented but may be added later. Do not build toward these unless explicitly asked.
+
+### Additional Agent Support
+
+```bash
+# Mistral Vibe
+vibe --prompt "text" --output streaming
+
+# Gemini CLI
+gemini -p "text" --output-format streaming-json
+```
+
+### Other Ideas
+
+- File diff review (changed file tracking per session)
+- macOS notifications on `waiting_for_input`
