@@ -29,6 +29,20 @@ export function App() {
     };
   }, [handleStatusChange]);
 
+  // Force layout recalculation when app becomes visible again.
+  // macOS can report stale viewport dimensions when restoring a window
+  // (e.g. switching spaces, waking from sleep), which leaves the bottom
+  // half of the app blank.
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (!document.hidden) {
+        window.dispatchEvent(new Event("resize"));
+      }
+    };
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+    return () => document.removeEventListener("visibilitychange", handleVisibilityChange);
+  }, []);
+
   // Subscribe to menu → Settings
   useEffect(() => {
     if (!window.electronAPI) return;
