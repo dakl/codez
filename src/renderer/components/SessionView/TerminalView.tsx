@@ -178,6 +178,12 @@ export function TerminalView({ sessionId, agentType, worktreePath, isActive }: T
         });
       });
       resizeObserver.observe(container);
+
+      // Focus the terminal if this session is already active (e.g. just created).
+      // The isActive effect won't fire because isActive was true from the start.
+      if (isActiveRef.current) {
+        terminal.focus();
+      }
     });
 
     return () => {
