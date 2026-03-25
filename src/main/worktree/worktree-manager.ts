@@ -58,6 +58,50 @@ export function symlinkClaudeDir(repoPath: string, worktreePath: string): void {
   }
 
   fs.symlinkSync(sourceClaudeDir, targetClaudeDir);
+  excludeClaudeDir(worktreePath);
+
+  // Remove .claude from the worktree's index so git doesn't see
+  // tracked-file deletions after replacing the directory with a symlink.
+  // This only affects the worktree's index, not the main repo.
+  try {
+    execFileSync("git", ["rm", "--cached", "-r", "--quiet", ".claude"], {
+      cwd: worktreePath,
+      stdio: "pipe",
+    });
+  } catch {
+    // .claude may not be tracked — ignore
+  }
+}
+
+/** Add .claude to the worktree's git exclude file so git ignores the symlink.
+ *  Git worktrees read info/exclude from the common git dir (the main repo's .git/). */
+export function excludeClaudeDir(worktreePath: string): void {
+  let commonDir: string;
+  try {
+    commonDir = execFileSync("git", ["rev-parse", "--git-common-dir"], {
+      cwd: worktreePath,
+      encoding: "utf8",
+      stdio: "pipe",
+    }).trim();
+  } catch {
+    return;
+  }
+
+  // Resolve relative paths (git may return a relative path)
+  if (!path.isAbsolute(commonDir)) {
+    commonDir = path.resolve(worktreePath, commonDir);
+  }
+
+  const infoDir = path.join(commonDir, "info");
+  fs.mkdirSync(infoDir, { recursive: true });
+
+  const excludeFile = path.join(infoDir, "exclude");
+  const existingContent = fs.existsSync(excludeFile) ? fs.readFileSync(excludeFile, "utf8") : "";
+
+  if (existingContent.split("\n").some((line) => line.trim() === ".claude")) return;
+
+  const separator = existingContent.length > 0 && !existingContent.endsWith("\n") ? "\n" : "";
+  fs.appendFileSync(excludeFile, `${separator}.claude\n`);
 }
 
 export function removeWorktree(worktreePath: string, branchName: string, repoPath: string): void {

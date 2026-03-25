@@ -5,6 +5,7 @@ import path from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import {
   createWorktree,
+  excludeClaudeDir,
   generateWorktreePath,
   listWorktrees,
   removeWorktree,
@@ -187,6 +188,89 @@ describe("worktree operations", () => {
       createWorktree(repoDir, "wt-list-test");
       const worktrees = listWorktrees(repoDir);
       expect(worktrees).toHaveLength(2);
+    });
+  });
+
+  describe("excludeClaudeDir", () => {
+    it("excludes .claude from git tracking in worktree after symlink", () => {
+      // Track .claude in the main repo
+      const claudeDir = path.join(repoDir, ".claude");
+      fs.mkdirSync(claudeDir);
+      fs.writeFileSync(path.join(claudeDir, "settings.local.json"), '{"permissions":{}}');
+      execFileSync("git", ["add", ".claude"], { cwd: repoDir });
+      execFileSync("git", ["commit", "-m", "add .claude"], { cwd: repoDir });
+
+      const worktreePath = createWorktree(repoDir, "exclude-test");
+
+      // The common git dir's info/exclude should contain .claude
+      const commonDir = execFileSync("git", ["rev-parse", "--git-common-dir"], {
+        cwd: worktreePath,
+        encoding: "utf8",
+      }).trim();
+      const resolvedCommonDir = path.isAbsolute(commonDir) ? commonDir : path.resolve(worktreePath, commonDir);
+      const excludeFile = path.join(resolvedCommonDir, "info", "exclude");
+
+      expect(fs.existsSync(excludeFile)).toBe(true);
+      const excludeContent = fs.readFileSync(excludeFile, "utf8");
+      expect(excludeContent).toContain(".claude");
+
+      // git status should not show .claude as untracked or modified
+      const status = execFileSync("git", ["status", "--porcelain"], {
+        cwd: worktreePath,
+        encoding: "utf8",
+      });
+      expect(status).not.toMatch(/\?\? .*\.claude/);
+      expect(status).not.toMatch(/ M .*\.claude/);
+    });
+
+    it("git operations work after symlinking .claude", () => {
+      // Track .claude in the main repo
+      const claudeDir = path.join(repoDir, ".claude");
+      fs.mkdirSync(claudeDir);
+      fs.mkdirSync(path.join(claudeDir, "commands"));
+      fs.writeFileSync(path.join(claudeDir, "commands", "test.md"), "test command");
+      execFileSync("git", ["add", ".claude"], { cwd: repoDir });
+      execFileSync("git", ["commit", "-m", "add .claude"], { cwd: repoDir });
+
+      const worktreePath = createWorktree(repoDir, "merge-test");
+
+      // Make a commit on main that we'll merge into the worktree
+      fs.writeFileSync(path.join(repoDir, "new-file.txt"), "new content");
+      execFileSync("git", ["add", "new-file.txt"], { cwd: repoDir });
+      execFileSync("git", ["commit", "-m", "add new file"], { cwd: repoDir });
+
+      // Merge main into the worktree — should not fail with "beyond a symbolic link"
+      expect(() => {
+        execFileSync("git", ["merge", "main"], {
+          cwd: worktreePath,
+          encoding: "utf8",
+          stdio: "pipe",
+        });
+      }).not.toThrow();
+
+      expect(fs.existsSync(path.join(worktreePath, "new-file.txt"))).toBe(true);
+    });
+
+    it("does not duplicate .claude entry in exclude file", () => {
+      const claudeDir = path.join(repoDir, ".claude");
+      fs.mkdirSync(claudeDir);
+      fs.writeFileSync(path.join(claudeDir, "settings.local.json"), "{}");
+
+      const worktreePath = createWorktree(repoDir, "no-dup-test");
+
+      // Call excludeClaudeDir a second time
+      excludeClaudeDir(worktreePath);
+
+      const commonDir = execFileSync("git", ["rev-parse", "--git-common-dir"], {
+        cwd: worktreePath,
+        encoding: "utf8",
+      }).trim();
+      const resolvedCommonDir = path.isAbsolute(commonDir) ? commonDir : path.resolve(worktreePath, commonDir);
+      const excludeContent = fs.readFileSync(path.join(resolvedCommonDir, "info", "exclude"), "utf8");
+
+      // Should appear exactly once
+      const matches = excludeContent.match(/^\.claude$/gm);
+      expect(matches).toHaveLength(1);
     });
   });
 });
