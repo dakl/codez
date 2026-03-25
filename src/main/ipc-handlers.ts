@@ -1,7 +1,7 @@
 import { execFileSync, spawn } from "node:child_process";
 import fs from "node:fs";
 import type Database from "better-sqlite3";
-import { app, type BrowserWindow, dialog, ipcMain } from "electron";
+import { app, type BrowserWindow, dialog, ipcMain, Notification } from "electron";
 import { getFonts2 } from "font-list";
 import * as pty from "node-pty";
 import type { AgentType } from "../shared/agent-types.js";
@@ -84,6 +84,27 @@ export function registerIpcHandlers(options: RegisterHandlersOptions): void {
     const window = getMainWindow();
     if (window) {
       window.webContents.send(IPC.EVENT_SESSION_STATUS, sessionId, status);
+    }
+
+    if (status === "waiting_for_input") {
+      const settings = readSettings(settingsPath);
+      if (settings.notificationsEnabled !== false && !window?.isFocused()) {
+        const session = getSession(db, sessionId);
+        const sessionName = session?.name || "Session";
+        const notification = new Notification({
+          title: sessionName,
+          body: "Waiting for your input",
+        });
+        notification.on("click", () => {
+          const win = getMainWindow();
+          if (win) {
+            win.show();
+            win.focus();
+            win.webContents.send(IPC.EVENT_NAVIGATE_TO_SESSION, sessionId);
+          }
+        });
+        notification.show();
+      }
     }
   });
 

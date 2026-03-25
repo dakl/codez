@@ -66,4 +66,5 @@ export const IPC = {
   EVENT_UPDATE_PROGRESS: "updater:progress",
   EVENT_UPDATE_ERROR: "updater:error",
   EVENT_MENU_SETTINGS: "menu:settings",
+  EVENT_NAVIGATE_TO_SESSION: "event:navigateToSession",
 } as const;

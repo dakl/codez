@@ -32,6 +32,7 @@ export function Sidebar() {
   const loadRepos = useRepoStore((state) => state.loadRepos);
   const addRepoViaDialog = useRepoStore((state) => state.addRepoViaDialog);
 
+  const unreadSessionIds = useSessionStore((state) => state.unreadSessionIds);
   const reorderSessions = useSessionStore((state) => state.reorderSessions);
 
   const [archiveOpen, setArchiveOpen] = useState(false);
@@ -201,6 +202,8 @@ export function Sidebar() {
                   key={session.id}
                   session={session}
                   isActive={session.id === activeSessionId}
+                  isUnread={unreadSessionIds.has(session.id)}
+                  isMarkUnreadTarget={metaHeld && session.id === activeSessionId}
                   onClick={() => setActiveSession(session.id)}
                   onArchive={() => handleArchiveSession(session)}
                   branchName={session.branchName ?? branches.get(session.repoPath)}

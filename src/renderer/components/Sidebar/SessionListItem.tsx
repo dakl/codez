@@ -4,6 +4,8 @@ import type { SessionInfo } from "@shared/agent-types";
 export interface SessionListItemProps {
   session: SessionInfo;
   isActive: boolean;
+  isUnread?: boolean;
+  isMarkUnreadTarget?: boolean;
   onClick: () => void;
   onArchive?: () => void;
   onRestore?: () => void;
@@ -30,6 +32,8 @@ function folderName(repoPath: string): string {
 export function SessionListItem({
   session,
   isActive,
+  isUnread,
+  isMarkUnreadTarget,
   onClick,
   onArchive,
   onRestore,
@@ -98,11 +102,18 @@ export function SessionListItem({
         </div>
       )}
 
-      {/* Chat bubble for waiting sessions — hidden when active or on hover */}
-      {session.status === "waiting_for_input" && !isActive && (
+      {/* Chat bubble for unread sessions — hidden when active or on hover */}
+      {isUnread && !isActive && (
         <div className="shrink-0 text-warning group-hover:hidden">
           <ChatBubbleIcon />
         </div>
+      )}
+
+      {/* "U" badge — shown on active session when Cmd is held (mark-unread hint) */}
+      {isMarkUnreadTarget && (
+        <span className="absolute right-1 top-1/2 -translate-y-1/2 w-5 h-5 flex items-center justify-center rounded bg-warning/80 text-[10px] font-semibold text-white shadow-sm">
+          U
+        </span>
       )}
 
       {/* Hover actions */}

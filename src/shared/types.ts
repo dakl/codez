@@ -30,6 +30,7 @@ export interface AppSettings {
   appIcon?: string;
   /** Base directory for worktrees. Defaults to sibling of repo (<repo>--<branch>). */
   worktreeBaseDir?: string;
+  notificationsEnabled?: boolean;
 }
 
 export interface ElectronAPI {
@@ -109,6 +110,7 @@ export interface ElectronAPI {
   ) => () => void;
   onUpdateError: (callback: (info: { error: string }) => void) => () => void;
   onMenuSettings: (callback: () => void) => () => void;
+  onNavigateToSession: (callback: (sessionId: string) => void) => () => void;
 }
 
 declare global {
