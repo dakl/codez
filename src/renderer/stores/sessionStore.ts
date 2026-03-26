@@ -15,7 +15,13 @@ interface SessionState {
   // Actions
   loadSessions: () => Promise<void>;
   loadArchivedSessions: () => Promise<void>;
-  createSession: (repoPath: string, agentType: "claude" | "gemini", branchName?: string) => Promise<SessionInfo>;
+  createSession: (options: {
+    repoPath: string;
+    agentType: "claude" | "gemini";
+    branchName?: string;
+    baseBranch?: string;
+    fetchFirst?: boolean;
+  }) => Promise<SessionInfo>;
   setActiveSession: (sessionId: string | null) => void;
   deleteSession: (sessionId: string) => Promise<void>;
   archiveSession: (sessionId: string) => Promise<void>;
@@ -47,8 +53,8 @@ export const useSessionStore = create<SessionState>((set) => ({
     set({ archivedSessions });
   },
 
-  createSession: async (repoPath, agentType, branchName?) => {
-    const session = await window.electronAPI.createSession(repoPath, agentType, branchName);
+  createSession: async (options) => {
+    const session = await window.electronAPI.createSession(options);
     set((state) => ({ sessions: [...state.sessions, session], activeSessionId: session.id }));
     return session;
   },
