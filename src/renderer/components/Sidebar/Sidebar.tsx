@@ -110,9 +110,15 @@ export function Sidebar() {
   }, [addRepoViaDialog, setPendingNewSessionRepo]);
 
   const handleNewSessionConfirm = useCallback(
-    async (branchName: string | undefined) => {
+    async (options: { branchName?: string; baseBranch?: string; fetchFirst?: boolean }) => {
       if (!pendingNewSessionRepo) return;
-      await createSession(pendingNewSessionRepo.path, "claude", branchName);
+      await createSession({
+        repoPath: pendingNewSessionRepo.path,
+        agentType: "claude",
+        branchName: options.branchName,
+        baseBranch: options.baseBranch,
+        fetchFirst: options.fetchFirst,
+      });
       setPendingNewSessionRepo(null);
     },
     [pendingNewSessionRepo, createSession, setPendingNewSessionRepo],
@@ -257,6 +263,7 @@ export function Sidebar() {
       {pendingNewSessionRepo && (
         <NewSessionDialog
           repoName={pendingNewSessionRepo.name}
+          repoPath={pendingNewSessionRepo.path}
           onConfirm={handleNewSessionConfirm}
           onCancel={() => setPendingNewSessionRepo(null)}
         />

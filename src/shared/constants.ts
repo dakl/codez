@@ -17,6 +17,8 @@ export const IPC = {
   REPOS_LIST: "repos:list",
   REPOS_SELECT_DIALOG: "repos:selectDialog",
   REPOS_GET_BRANCH: "repos:getBranch",
+  REPOS_LIST_BRANCHES: "repos:listBranches",
+  REPOS_GET_DEFAULT_BRANCH: "repos:getDefaultBranch",
 
   // Worktrees
   WORKTREES_LIST: "worktrees:list",

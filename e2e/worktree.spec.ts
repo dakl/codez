@@ -42,11 +42,11 @@ test("creating a session with a branch name creates a worktree on disk", async (
   await window.evaluate(
     async ([repoPath]) => {
       await (window as any).electronAPI.addRepo(repoPath);
-      await (window as any).electronAPI.createSession(
+      await (window as any).electronAPI.createSession({
         repoPath,
-        "claude",
-        "test-branch",
-      );
+        agentType: "claude",
+        branchName: "test-branch",
+      });
     },
     [repoDir],
   );
@@ -86,11 +86,11 @@ test("worktreeBaseDir setting directs worktrees to a custom location", async () 
   const session = await window.evaluate(
     async ([repoPath]) => {
       await (window as any).electronAPI.addRepo(repoPath);
-      return await (window as any).electronAPI.createSession(
+      return await (window as any).electronAPI.createSession({
         repoPath,
-        "claude",
-        "custom-loc",
-      );
+        agentType: "claude",
+        branchName: "custom-loc",
+      });
     },
     [repoDir],
   );
@@ -131,10 +131,10 @@ test("creating a session without a branch uses the repo directly", async () => {
   const session = await window.evaluate(
     async ([repoPath]) => {
       await (window as any).electronAPI.addRepo(repoPath);
-      return await (window as any).electronAPI.createSession(
+      return await (window as any).electronAPI.createSession({
         repoPath,
-        "claude",
-      );
+        agentType: "claude",
+      });
     },
     [repoDir],
   );

@@ -105,7 +105,7 @@ test("capture app screenshot", async () => {
   console.log("Creating session 1: codez on main...");
   await window.evaluate(
     async ([repo]) => {
-      await (window as any).electronAPI.createSession(repo, "claude", "", "Parallel session manager");
+      await (window as any).electronAPI.createSession({ repoPath: repo, agentType: "claude", name: "Parallel session manager" });
     },
     [codezRepo],
   );
@@ -114,7 +114,7 @@ test("capture app screenshot", async () => {
   console.log("Creating session 2: codez on custom-fonts...");
   await window.evaluate(
     async ([repo]) => {
-      await (window as any).electronAPI.createSession(repo, "claude", "custom-fonts", "Custom font integration");
+      await (window as any).electronAPI.createSession({ repoPath: repo, agentType: "claude", branchName: "custom-fonts", name: "Custom font integration" });
     },
     [codezRepo],
   );
@@ -123,7 +123,7 @@ test("capture app screenshot", async () => {
   console.log("Creating session 3: papershelf on v3.0-dev...");
   await window.evaluate(
     async ([repo]) => {
-      await (window as any).electronAPI.createSession(repo, "claude", "v3.0-dev", "Migrate to React 19");
+      await (window as any).electronAPI.createSession({ repoPath: repo, agentType: "claude", branchName: "v3.0-dev", name: "Migrate to React 19" });
     },
     [papershelfRepo],
   );

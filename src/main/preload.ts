@@ -19,6 +19,8 @@ const CH = {
   REPOS_LIST: "repos:list",
   REPOS_SELECT_DIALOG: "repos:selectDialog",
   REPOS_GET_BRANCH: "repos:getBranch",
+  REPOS_LIST_BRANCHES: "repos:listBranches",
+  REPOS_GET_DEFAULT_BRANCH: "repos:getDefaultBranch",
   WORKTREES_LIST: "worktrees:list",
   WORKTREES_CLEANUP: "worktrees:cleanup",
   VOICE_START_RECORDING: "voice:startRecording",
@@ -54,8 +56,14 @@ const CH = {
 
 const api = {
   // Sessions
-  createSession: (repoPath: string, agentType: string, branchName?: string, name?: string) =>
-    ipcRenderer.invoke(CH.SESSIONS_CREATE, repoPath, agentType, branchName, name),
+  createSession: (options: {
+    repoPath: string;
+    agentType: string;
+    branchName?: string;
+    name?: string;
+    baseBranch?: string;
+    fetchFirst?: boolean;
+  }) => ipcRenderer.invoke(CH.SESSIONS_CREATE, options),
   resumeSession: (sessionId: string) => ipcRenderer.invoke(CH.SESSIONS_RESUME, sessionId),
   sendMessage: (sessionId: string, message: string) => ipcRenderer.invoke(CH.SESSIONS_SEND_MESSAGE, sessionId, message),
   stopSession: (sessionId: string) => ipcRenderer.invoke(CH.SESSIONS_STOP, sessionId),
@@ -73,6 +81,8 @@ const api = {
   listRepos: () => ipcRenderer.invoke(CH.REPOS_LIST),
   selectRepoDialog: () => ipcRenderer.invoke(CH.REPOS_SELECT_DIALOG),
   getRepoBranch: (repoPath: string) => ipcRenderer.invoke(CH.REPOS_GET_BRANCH, repoPath),
+  listBranches: (repoPath: string) => ipcRenderer.invoke(CH.REPOS_LIST_BRANCHES, repoPath),
+  getDefaultBranch: (repoPath: string) => ipcRenderer.invoke(CH.REPOS_GET_DEFAULT_BRANCH, repoPath),
 
   // Worktrees
   listWorktrees: (repoPath: string) => ipcRenderer.invoke(CH.WORKTREES_LIST, repoPath),

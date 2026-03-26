@@ -26,7 +26,7 @@ import { applyDockIcon, getIconsDir } from "./dock.js";
 import { PtyManager } from "./services/pty-manager.js";
 import { SessionLifecycle } from "./services/session-lifecycle.js";
 import { getShortcutOverrides, readSettings, saveShortcutOverrides, writeSettings } from "./settings.js";
-import { createWorktree, removeWorktree } from "./worktree/worktree-manager.js";
+import { createWorktree, getDefaultBranch, listLocalBranches, removeWorktree } from "./worktree/worktree-manager.js";
 
 interface RegisterHandlersOptions {
   db: Database.Database;
@@ -111,14 +111,31 @@ export function registerIpcHandlers(options: RegisterHandlersOptions): void {
 
   ipcMain.handle(
     IPC.SESSIONS_CREATE,
-    (_event, repoPath: string, agentType: AgentType, branchName?: string, name?: string) => {
+    (
+      _event,
+      options: {
+        repoPath: string;
+        agentType: AgentType;
+        branchName?: string;
+        name?: string;
+        baseBranch?: string;
+        fetchFirst?: boolean;
+      },
+    ) => {
+      const { repoPath, agentType, branchName, name, baseBranch, fetchFirst } = options;
       const sessionName = name || `Session ${Date.now()}`;
       let worktreePath = repoPath;
       let resolvedBranch: string | null = null;
 
       if (branchName) {
         const settings = readSettings(settingsPath);
-        worktreePath = createWorktree(repoPath, branchName, settings.worktreeBaseDir);
+        worktreePath = createWorktree({
+          repoPath,
+          branchName,
+          baseDir: settings.worktreeBaseDir,
+          baseBranch,
+          fetchFirst,
+        });
         resolvedBranch = branchName;
       }
 
@@ -237,6 +254,14 @@ export function registerIpcHandlers(options: RegisterHandlersOptions): void {
     } catch {
       return null;
     }
+  });
+
+  ipcMain.handle(IPC.REPOS_LIST_BRANCHES, (_event, repoPath: string) => {
+    return listLocalBranches(repoPath);
+  });
+
+  ipcMain.handle(IPC.REPOS_GET_DEFAULT_BRANCH, (_event, repoPath: string) => {
+    return getDefaultBranch(repoPath);
   });
 
   ipcMain.handle(IPC.REPOS_SELECT_DIALOG, async () => {

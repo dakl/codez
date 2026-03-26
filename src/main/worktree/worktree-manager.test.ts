@@ -6,6 +6,8 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import {
   createWorktree,
   generateWorktreePath,
+  getDefaultBranch,
+  listLocalBranches,
   listWorktrees,
   removeWorktree,
   sanitizeBranchName,
@@ -88,6 +90,41 @@ describe("worktree operations", () => {
     fs.rmSync(repoDir, { recursive: true, force: true });
   });
 
+  describe("getDefaultBranch", () => {
+    it("returns the default branch name from a repo with a remote", () => {
+      // Set up a bare remote so symbolic-ref works
+      const bareRemote = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), "codez-wt-bare-")));
+      execFileSync("git", ["clone", "--bare", repoDir, bareRemote]);
+      // Point the local repo at the bare remote
+      execFileSync("git", ["remote", "add", "origin", bareRemote], { cwd: repoDir });
+      execFileSync("git", ["fetch", "origin"], { cwd: repoDir });
+
+      const branch = getDefaultBranch(repoDir);
+      expect(branch).toBe("main");
+
+      fs.rmSync(bareRemote, { recursive: true, force: true });
+    });
+
+    it("falls back to 'main' when there is no remote", () => {
+      const branch = getDefaultBranch(repoDir);
+      expect(branch).toBe("main");
+    });
+  });
+
+  describe("listLocalBranches", () => {
+    it("returns the list of local branches", () => {
+      const branches = listLocalBranches(repoDir);
+      expect(branches).toContain("main");
+    });
+
+    it("includes branches created by worktrees", () => {
+      createWorktree(repoDir, "feature-x");
+      const branches = listLocalBranches(repoDir);
+      expect(branches).toContain("main");
+      expect(branches).toContain("feature-x");
+    });
+  });
+
   describe("createWorktree", () => {
     it("creates a worktree and returns its path", () => {
       const worktreePath = createWorktree(repoDir, "test-branch");
@@ -150,6 +187,67 @@ describe("worktree operations", () => {
       expect(fs.existsSync(path.join(worktreePath, "README.md"))).toBe(true);
       // Cleanup
       fs.rmSync(customBase, { recursive: true, force: true });
+    });
+
+    it("creates worktree from a local baseBranch", () => {
+      // Create a commit on main that the new branch should contain
+      fs.writeFileSync(path.join(repoDir, "extra.txt"), "extra");
+      execFileSync("git", ["add", "."], { cwd: repoDir });
+      execFileSync("git", ["commit", "-m", "add extra"], { cwd: repoDir });
+
+      const worktreePath = createWorktree({
+        repoPath: repoDir,
+        branchName: "from-main",
+        baseBranch: "main",
+      });
+      expect(fs.existsSync(path.join(worktreePath, "extra.txt"))).toBe(true);
+    });
+
+    it("fetches and creates worktree from origin when fetchFirst is true", () => {
+      // Set up a bare remote with an extra commit
+      const bareRemote = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), "codez-wt-remote-")));
+      execFileSync("git", ["clone", "--bare", repoDir, bareRemote]);
+      execFileSync("git", ["remote", "add", "origin", bareRemote], { cwd: repoDir });
+      execFileSync("git", ["fetch", "origin"], { cwd: repoDir });
+
+      // Push a new commit directly to the bare remote via a temp clone
+      const tempClone = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), "codez-wt-clone-")));
+      execFileSync("git", ["clone", bareRemote, tempClone]);
+      execFileSync("git", ["config", "user.email", "test@test.com"], { cwd: tempClone });
+      execFileSync("git", ["config", "user.name", "Test"], { cwd: tempClone });
+      fs.writeFileSync(path.join(tempClone, "remote-file.txt"), "from remote");
+      execFileSync("git", ["add", "."], { cwd: tempClone });
+      execFileSync("git", ["commit", "-m", "remote commit"], { cwd: tempClone });
+      execFileSync("git", ["push"], { cwd: tempClone });
+
+      // Now create worktree with fetchFirst — it should contain the remote commit
+      const worktreePath = createWorktree({
+        repoPath: repoDir,
+        branchName: "fetched-branch",
+        baseBranch: "main",
+        fetchFirst: true,
+      });
+      expect(fs.existsSync(path.join(worktreePath, "remote-file.txt"))).toBe(true);
+
+      fs.rmSync(bareRemote, { recursive: true, force: true });
+      fs.rmSync(tempClone, { recursive: true, force: true });
+    });
+
+    it("throws when fetch fails with fetchFirst", () => {
+      // No remote configured — fetch should fail
+      expect(() =>
+        createWorktree({
+          repoPath: repoDir,
+          branchName: "fail-fetch",
+          baseBranch: "main",
+          fetchFirst: true,
+        }),
+      ).toThrow("Failed to fetch");
+    });
+
+    it("accepts options object for basic usage", () => {
+      const worktreePath = createWorktree({ repoPath: repoDir, branchName: "opts-test" });
+      expect(fs.existsSync(worktreePath)).toBe(true);
     });
   });
 

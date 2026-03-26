@@ -32,9 +32,18 @@ export interface AppSettings {
   worktreeBaseDir?: string;
 }
 
+export interface CreateSessionOptions {
+  repoPath: string;
+  agentType: AgentType;
+  branchName?: string;
+  name?: string;
+  baseBranch?: string;
+  fetchFirst?: boolean;
+}
+
 export interface ElectronAPI {
   // Sessions
-  createSession: (repoPath: string, agentType: AgentType, branchName?: string, name?: string) => Promise<SessionInfo>;
+  createSession: (options: CreateSessionOptions) => Promise<SessionInfo>;
   resumeSession: (sessionId: string) => Promise<SessionInfo>;
   sendMessage: (sessionId: string, message: string) => Promise<void>;
   stopSession: (sessionId: string) => Promise<void>;
@@ -51,6 +60,8 @@ export interface ElectronAPI {
   listRepos: () => Promise<RepoInfo[]>;
   selectRepoDialog: () => Promise<RepoInfo | null>;
   getRepoBranch: (repoPath: string) => Promise<string | null>;
+  listBranches: (repoPath: string) => Promise<string[]>;
+  getDefaultBranch: (repoPath: string) => Promise<string>;
 
   // Worktrees
   listWorktrees: (repoPath: string) => Promise<string[]>;
