@@ -2,6 +2,36 @@ import { execFileSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
 
+export function getDefaultBranch(repoPath: string): string {
+  try {
+    const ref = execFileSync("git", ["symbolic-ref", "refs/remotes/origin/HEAD"], {
+      cwd: repoPath,
+      encoding: "utf8",
+      stdio: "pipe",
+      timeout: 5000,
+    }).trim();
+    // "refs/remotes/origin/main" → "main"
+    const parts = ref.split("/");
+    return parts[parts.length - 1];
+  } catch {
+    // No remote or symbolic-ref not set — fall back to "main"
+    return "main";
+  }
+}
+
+export function listLocalBranches(repoPath: string): string[] {
+  const output = execFileSync("git", ["branch", "--format=%(refname:short)"], {
+    cwd: repoPath,
+    encoding: "utf8",
+    stdio: "pipe",
+    timeout: 5000,
+  });
+  return output
+    .split("\n")
+    .map((line) => line.trim())
+    .filter(Boolean);
+}
+
 export function sanitizeBranchName(name: string): string {
   return name
     .trim()
@@ -19,13 +49,57 @@ export function generateWorktreePath(repoPath: string, branchName: string, baseD
   return `${repoPath}--${safeName}`;
 }
 
-export function createWorktree(repoPath: string, branchName: string, baseDir?: string): string {
-  const safeName = sanitizeBranchName(branchName);
-  const worktreePath = generateWorktreePath(repoPath, safeName, baseDir);
+export interface CreateWorktreeOptions {
+  repoPath: string;
+  branchName: string;
+  baseDir?: string;
+  baseBranch?: string;
+  fetchFirst?: boolean;
+}
+
+export function createWorktree(options: CreateWorktreeOptions): string;
+export function createWorktree(repoPath: string, branchName: string, baseDir?: string): string;
+export function createWorktree(
+  optionsOrRepoPath: CreateWorktreeOptions | string,
+  branchName?: string,
+  baseDir?: string,
+): string {
+  const options: CreateWorktreeOptions =
+    typeof optionsOrRepoPath === "string"
+      ? { repoPath: optionsOrRepoPath, branchName: branchName ?? "", baseDir }
+      : optionsOrRepoPath;
+
+  const safeName = sanitizeBranchName(options.branchName);
+  const worktreePath = generateWorktreePath(options.repoPath, safeName, options.baseDir);
+
+  if (options.fetchFirst && options.baseBranch) {
+    try {
+      execFileSync("git", ["fetch", "origin", options.baseBranch], {
+        cwd: options.repoPath,
+        encoding: "utf8",
+        stdio: "pipe",
+        timeout: 30000,
+      });
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      throw new Error(`Failed to fetch origin/${options.baseBranch}: ${message}`);
+    }
+  }
+
+  const startPoint = options.baseBranch
+    ? options.fetchFirst
+      ? `origin/${options.baseBranch}`
+      : options.baseBranch
+    : undefined;
+
+  const args = ["worktree", "add", worktreePath, "-b", safeName];
+  if (startPoint) {
+    args.push(startPoint);
+  }
 
   try {
-    execFileSync("git", ["worktree", "add", worktreePath, "-b", safeName], {
-      cwd: repoPath,
+    execFileSync("git", args, {
+      cwd: options.repoPath,
       encoding: "utf8",
       stdio: "pipe",
     });
@@ -37,7 +111,7 @@ export function createWorktree(repoPath: string, branchName: string, baseDir?: s
     throw new Error(`Failed to create worktree: ${message}`);
   }
 
-  symlinkClaudeDir(repoPath, worktreePath);
+  symlinkClaudeDir(options.repoPath, worktreePath);
 
   return worktreePath;
 }
