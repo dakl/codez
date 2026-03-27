@@ -23,7 +23,6 @@ import {
   updateSessionStatus,
 } from "./db/sessions.js";
 import { applyDockIcon, getIconsDir } from "./dock.js";
-import { claudeSessionExistsOnDisk } from "./services/claude-session-check.js";
 import { PtyManager } from "./services/pty-manager.js";
 import { SessionLifecycle } from "./services/session-lifecycle.js";
 import { getShortcutOverrides, readSettings, saveShortcutOverrides, writeSettings } from "./settings.js";
@@ -201,19 +200,7 @@ export function registerIpcHandlers(options: RegisterHandlersOptions): void {
       // Pass the stored Claude session ID for --resume, or null for first launch (--session-id).
       // Legacy sessions stored "used" as a boolean marker — treat those as new sessions.
       const sessionRecord = getSession(db, sessionId);
-      let storedSessionId = sessionRecord?.agentSessionId === "used" ? null : (sessionRecord?.agentSessionId ?? null);
-
-      // Validate the Claude session still exists on disk before using --resume.
-      // In interactive mode, --resume silently falls back to the most recent session
-      // if the target doesn't exist (unlike -p mode which properly errors).
-      if (storedSessionId && agentType === "claude" && !claudeSessionExistsOnDisk(worktreePath, storedSessionId)) {
-        console.warn(
-          `[pty] Claude session ${storedSessionId} not found on disk for worktree ${worktreePath}. ` +
-            "Starting fresh session instead of risking silent fallback.",
-        );
-        storedSessionId = null;
-      }
-
+      const storedSessionId = sessionRecord?.agentSessionId === "used" ? null : (sessionRecord?.agentSessionId ?? null);
       ptyManager.create(sessionId, agentType, worktreePath, cols, rows, storedSessionId);
 
       // Store the session ID so future launches use --resume
