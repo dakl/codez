@@ -53,17 +53,8 @@ export function SessionView() {
     if (!isRunning) setEscPrimed(false);
   }, [isRunning]);
 
-  // Fetch branch name for the active session's repo
-  const [branchName, setBranchName] = useState<string | null>(null);
-  useEffect(() => {
-    if (!session?.repoPath) {
-      setBranchName(null);
-      return;
-    }
-    window.electronAPI.getRepoBranch(session.repoPath).then(setBranchName);
-  }, [session?.repoPath]);
-
-  const folderName = session?.repoPath.split("/").pop() || session?.repoPath;
+  const worktreePath = session?.worktreePath;
+  const branchName = session?.branchName ?? null;
 
   if (!activeSessionId || !session) {
     return (
@@ -84,7 +75,7 @@ export function SessionView() {
     <div className="flex-1 flex flex-col min-h-0">
       {/* Session header */}
       <div className="h-10 flex items-center px-4 border-b border-border gap-2">
-        <span className="text-sm font-medium text-text-primary font-mono">{folderName}</span>
+        <span className="text-sm font-medium text-text-primary font-mono">{worktreePath}</span>
         {branchName && <span className="text-xs text-text-muted font-mono">{branchName}</span>}
         <StatusBadge status={session.status} />
       </div>
