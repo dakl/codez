@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { isNewSessionShortcut, isSettingsShortcut } from "./useGlobalShortcuts";
+import { isMarkUnreadShortcut, isNewSessionShortcut, isSettingsShortcut } from "./useGlobalShortcuts";
 
 describe("isSettingsShortcut", () => {
   it("returns true for Cmd+,", () => {
@@ -42,5 +42,27 @@ describe("isNewSessionShortcut", () => {
   it("returns false for Cmd+Shift+N", () => {
     const event = { key: "n", metaKey: true, ctrlKey: false, shiftKey: true, altKey: false };
     expect(isNewSessionShortcut(event as KeyboardEvent)).toBe(false);
+  });
+});
+
+describe("isMarkUnreadShortcut", () => {
+  it("returns true for Cmd+U", () => {
+    const event = { key: "u", metaKey: true, ctrlKey: false, shiftKey: false, altKey: false };
+    expect(isMarkUnreadShortcut(event as KeyboardEvent)).toBe(true);
+  });
+
+  it("returns false without meta", () => {
+    const event = { key: "u", metaKey: false, ctrlKey: false, shiftKey: false, altKey: false };
+    expect(isMarkUnreadShortcut(event as KeyboardEvent)).toBe(false);
+  });
+
+  it("returns false for Cmd+Shift+U", () => {
+    const event = { key: "u", metaKey: true, ctrlKey: false, shiftKey: true, altKey: false };
+    expect(isMarkUnreadShortcut(event as KeyboardEvent)).toBe(false);
+  });
+
+  it("returns false for Cmd+Alt+U", () => {
+    const event = { key: "u", metaKey: true, ctrlKey: false, shiftKey: false, altKey: true };
+    expect(isMarkUnreadShortcut(event as KeyboardEvent)).toBe(false);
   });
 });

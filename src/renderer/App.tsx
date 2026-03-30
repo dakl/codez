@@ -9,6 +9,7 @@ import { useThemeStore } from "./stores/themeStore";
 
 export function App() {
   const handleStatusChange = useSessionStore((state) => state.handleStatusChange);
+  const setActiveSession = useSessionStore((state) => state.setActiveSession);
   const loadTheme = useThemeStore((state) => state.loadTheme);
   const loadFonts = useFontStore((state) => state.loadFonts);
   const toggleSettings = useThemeStore((state) => state.toggleSettings);
@@ -42,6 +43,12 @@ export function App() {
     document.addEventListener("visibilitychange", handleVisibilityChange);
     return () => document.removeEventListener("visibilitychange", handleVisibilityChange);
   }, []);
+
+  // Navigate to session when notification is clicked
+  useEffect(() => {
+    if (!window.electronAPI) return;
+    return window.electronAPI.onNavigateToSession(setActiveSession);
+  }, [setActiveSession]);
 
   // Subscribe to menu → Settings
   useEffect(() => {

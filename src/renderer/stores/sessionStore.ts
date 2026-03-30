@@ -4,10 +4,13 @@ import { create } from "zustand";
 
 type WorktreeDialogContext = "archive" | "delete";
 
+let readTimerId: ReturnType<typeof setTimeout> | null = null;
+
 interface SessionState {
   sessions: SessionInfo[];
   archivedSessions: SessionInfo[];
   activeSessionId: string | null;
+  unreadSessionIds: Set<string>;
   pendingNewSessionRepo: RepoInfo | null;
   pendingWorktreeSession: SessionInfo | null;
   pendingWorktreeContext: WorktreeDialogContext | null;
@@ -23,6 +26,8 @@ interface SessionState {
     fetchFirst?: boolean;
   }) => Promise<SessionInfo>;
   setActiveSession: (sessionId: string | null) => void;
+  markUnread: (sessionId: string) => void;
+  markRead: (sessionId: string) => void;
   deleteSession: (sessionId: string) => Promise<void>;
   archiveSession: (sessionId: string) => Promise<void>;
   archiveSessionWithWorktreeCleanup: (sessionId: string, deleteBranch: boolean) => Promise<void>;
@@ -35,10 +40,11 @@ interface SessionState {
   dismissWorktreeDialog: () => void;
 }
 
-export const useSessionStore = create<SessionState>((set) => ({
+export const useSessionStore = create<SessionState>((set, get) => ({
   sessions: [],
   archivedSessions: [],
   activeSessionId: null,
+  unreadSessionIds: new Set<string>(),
   pendingNewSessionRepo: null,
   pendingWorktreeSession: null,
   pendingWorktreeContext: null,
@@ -60,17 +66,53 @@ export const useSessionStore = create<SessionState>((set) => ({
   },
 
   setActiveSession: (sessionId) => {
+    if (readTimerId !== null) {
+      clearTimeout(readTimerId);
+      readTimerId = null;
+    }
     set({ activeSessionId: sessionId });
+    if (sessionId && get().unreadSessionIds.has(sessionId)) {
+      readTimerId = setTimeout(() => {
+        readTimerId = null;
+        const state = get();
+        if (state.activeSessionId === sessionId) {
+          const next = new Set(state.unreadSessionIds);
+          next.delete(sessionId);
+          set({ unreadSessionIds: next });
+        }
+      }, 1500);
+    }
+  },
+
+  markUnread: (sessionId) => {
+    set((state) => {
+      const next = new Set(state.unreadSessionIds);
+      next.add(sessionId);
+      return { unreadSessionIds: next };
+    });
+  },
+
+  markRead: (sessionId) => {
+    set((state) => {
+      const next = new Set(state.unreadSessionIds);
+      next.delete(sessionId);
+      return { unreadSessionIds: next };
+    });
   },
 
   deleteSession: async (sessionId) => {
     await window.electronAPI.ptyKill(sessionId).catch(() => {});
     await window.electronAPI.deleteSession(sessionId);
-    set((state) => ({
-      sessions: state.sessions.filter((s) => s.id !== sessionId),
-      archivedSessions: state.archivedSessions.filter((s) => s.id !== sessionId),
-      activeSessionId: state.activeSessionId === sessionId ? null : state.activeSessionId,
-    }));
+    set((state) => {
+      const next = new Set(state.unreadSessionIds);
+      next.delete(sessionId);
+      return {
+        sessions: state.sessions.filter((s) => s.id !== sessionId),
+        archivedSessions: state.archivedSessions.filter((s) => s.id !== sessionId),
+        activeSessionId: state.activeSessionId === sessionId ? null : state.activeSessionId,
+        unreadSessionIds: next,
+      };
+    });
   },
 
   archiveSession: async (sessionId) => {
@@ -79,10 +121,13 @@ export const useSessionStore = create<SessionState>((set) => ({
     set((state) => {
       const session = state.sessions.find((s) => s.id === sessionId);
       const archived = session ? { ...session, status: "archived" as const } : null;
+      const nextUnread = new Set(state.unreadSessionIds);
+      nextUnread.delete(sessionId);
       return {
         sessions: state.sessions.filter((s) => s.id !== sessionId),
         archivedSessions: archived ? [archived, ...state.archivedSessions] : state.archivedSessions,
         activeSessionId: state.activeSessionId === sessionId ? null : state.activeSessionId,
+        unreadSessionIds: nextUnread,
       };
     });
   },
@@ -155,23 +200,33 @@ export const useSessionStore = create<SessionState>((set) => ({
       set((state) => {
         const session = state.sessions.find((s) => s.id === sessionId);
         const archived = session ? { ...session, status: "archived" as const } : null;
-
-        // If session had a worktree, show cleanup dialog
         const showDialog = session?.branchName != null;
+        const nextUnread = new Set(state.unreadSessionIds);
+        nextUnread.delete(sessionId);
 
         return {
           sessions: state.sessions.filter((s) => s.id !== sessionId),
           archivedSessions: archived ? [archived, ...state.archivedSessions] : state.archivedSessions,
           activeSessionId: state.activeSessionId === sessionId ? null : state.activeSessionId,
+          unreadSessionIds: nextUnread,
           ...(showDialog && archived
             ? { pendingWorktreeSession: archived, pendingWorktreeContext: "archive" as const }
             : {}),
         };
       });
     } else {
-      set((state) => ({
-        sessions: state.sessions.map((s) => (s.id === sessionId ? { ...s, status } : s)),
-      }));
+      set((state) => {
+        const nextUnread = new Set(state.unreadSessionIds);
+        if (status === "waiting_for_input" && sessionId !== state.activeSessionId) {
+          nextUnread.add(sessionId);
+        } else if (status === "running") {
+          nextUnread.delete(sessionId);
+        }
+        return {
+          sessions: state.sessions.map((s) => (s.id === sessionId ? { ...s, status } : s)),
+          unreadSessionIds: nextUnread,
+        };
+      });
     }
   },
 

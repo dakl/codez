@@ -38,6 +38,7 @@ export function SettingsPanel() {
   const [iconDataUrls, setIconDataUrls] = useState<Record<string, string>>({});
   const [appVersion, setAppVersion] = useState("");
   const [worktreeBaseDir, setWorktreeBaseDir] = useState<string | undefined>();
+  const [notificationsEnabled, setNotificationsEnabled] = useState(true);
 
   const [updateState, setUpdateState] = useState<UpdateState>("idle");
   const [updateInfo, setUpdateInfo] = useState<UpdateInfo>({});
@@ -48,6 +49,7 @@ export function SettingsPanel() {
     window.electronAPI.getSettings().then((settings) => {
       setActiveIcon(settings.appIcon ?? "icon-01");
       setWorktreeBaseDir(settings.worktreeBaseDir);
+      setNotificationsEnabled(settings.notificationsEnabled !== false);
     });
     window.electronAPI.getIconDataUrls().then(setIconDataUrls);
     window.electronAPI.listFonts().then(setFonts);
@@ -129,6 +131,13 @@ export function SettingsPanel() {
     }
   }, []);
 
+  const handleToggleNotifications = useCallback(async () => {
+    if (!window.electronAPI) return;
+    const next = !notificationsEnabled;
+    setNotificationsEnabled(next);
+    await window.electronAPI.saveSettings({ notificationsEnabled: next });
+  }, [notificationsEnabled]);
+
   const handleClearWorktreeDir = useCallback(async () => {
     if (!window.electronAPI) return;
     setWorktreeBaseDir(undefined);
@@ -204,6 +213,29 @@ export function SettingsPanel() {
             >
               {worktreeBaseDir ? "Change Folder..." : "Choose Folder..."}
             </button>
+          </div>
+        </div>
+
+        {/* Notifications section */}
+        <div className="mb-6">
+          <h3 className="text-sm font-medium text-text-secondary mb-3">Notifications</h3>
+          <div className="rounded-lg bg-surface border border-border-subtle p-4">
+            <div className="flex items-center justify-between">
+              <span className="text-xs text-text-secondary">
+                Show macOS notifications when a session is waiting for input
+              </span>
+              <button
+                type="button"
+                onClick={handleToggleNotifications}
+                className={`text-xs font-medium px-3 py-1.5 rounded-md transition-colors cursor-pointer ${
+                  notificationsEnabled
+                    ? "bg-accent/15 text-accent hover:bg-accent/25"
+                    : "bg-white/5 text-text-muted hover:bg-white/10"
+                }`}
+              >
+                {notificationsEnabled ? "Enabled" : "Disabled"}
+              </button>
+            </div>
           </div>
         </div>
 

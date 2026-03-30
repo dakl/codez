@@ -52,6 +52,7 @@ const CH = {
   EVENT_UPDATE_PROGRESS: "updater:progress",
   EVENT_UPDATE_ERROR: "updater:error",
   EVENT_MENU_SETTINGS: "menu:settings",
+  EVENT_NAVIGATE_TO_SESSION: "event:navigateToSession",
 } as const;
 
 const api = {
@@ -176,6 +177,11 @@ const api = {
     const handler = () => callback();
     ipcRenderer.on(CH.EVENT_MENU_SETTINGS, handler);
     return () => ipcRenderer.removeListener(CH.EVENT_MENU_SETTINGS, handler);
+  },
+  onNavigateToSession: (callback: (sessionId: string) => void) => {
+    const handler = (_event: unknown, sessionId: string) => callback(sessionId);
+    ipcRenderer.on(CH.EVENT_NAVIGATE_TO_SESSION, handler);
+    return () => ipcRenderer.removeListener(CH.EVENT_NAVIGATE_TO_SESSION, handler);
   },
 };
 

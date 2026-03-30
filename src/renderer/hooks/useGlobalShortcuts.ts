@@ -11,9 +11,14 @@ export function isNewSessionShortcut(event: KeyboardEvent): boolean {
   return event.key === "n" && event.metaKey && !event.shiftKey && !event.altKey && !event.ctrlKey;
 }
 
+export function isMarkUnreadShortcut(event: KeyboardEvent): boolean {
+  return event.key === "u" && event.metaKey && !event.shiftKey && !event.altKey && !event.ctrlKey;
+}
+
 export function useGlobalShortcuts(): void {
   const toggleSettings = useThemeStore((state) => state.toggleSettings);
   const setPendingNewSessionRepo = useSessionStore((state) => state.setPendingNewSessionRepo);
+  const markUnread = useSessionStore((state) => state.markUnread);
   const addRepoViaDialog = useRepoStore((state) => state.addRepoViaDialog);
 
   useEffect(() => {
@@ -30,9 +35,17 @@ export function useGlobalShortcuts(): void {
           setPendingNewSessionRepo(repo);
         }
       }
+
+      if (isMarkUnreadShortcut(event)) {
+        event.preventDefault();
+        const activeSessionId = useSessionStore.getState().activeSessionId;
+        if (activeSessionId) {
+          markUnread(activeSessionId);
+        }
+      }
     }
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [toggleSettings, setPendingNewSessionRepo, addRepoViaDialog]);
+  }, [toggleSettings, setPendingNewSessionRepo, markUnread, addRepoViaDialog]);
 }
