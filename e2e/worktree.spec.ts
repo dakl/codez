@@ -116,13 +116,15 @@ test("worktreeBaseDir setting directs worktrees to a custom location", async () 
   expect(worktreeList).toContain("custom-loc");
   expect(worktreeList).toContain(expectedPath);
 
-  // .claude should be symlinked from the main repo into the custom worktree
+  // .claude should be a real directory (not a symlink) so git works normally
   const worktreeClaudeDir = path.join(expectedPath, ".claude");
   expect(existsSync(worktreeClaudeDir)).toBe(true);
-  expect(lstatSync(worktreeClaudeDir).isSymbolicLink()).toBe(true);
-  expect(realpathSync(worktreeClaudeDir)).toBe(realpathSync(claudeDir));
-  // Permissions file is accessible through the symlink
-  expect(existsSync(path.join(worktreeClaudeDir, "settings.local.json"))).toBe(true);
+  expect(lstatSync(worktreeClaudeDir).isSymbolicLink()).toBe(false);
+  expect(lstatSync(worktreeClaudeDir).isDirectory()).toBe(true);
+  // settings.local.json should be symlinked from the main repo for shared permissions
+  const worktreeSettingsJson = path.join(worktreeClaudeDir, "settings.local.json");
+  expect(lstatSync(worktreeSettingsJson).isSymbolicLink()).toBe(true);
+  expect(realpathSync(worktreeSettingsJson)).toBe(realpathSync(path.join(claudeDir, "settings.local.json")));
 });
 
 test("creating a session without a branch uses the repo directly", async () => {

@@ -7,6 +7,7 @@ import {
   createWorktree,
   generateWorktreePath,
   getDefaultBranch,
+  linkClaudeSettings,
   listLocalBranches,
   listWorktrees,
   removeWorktree,
@@ -143,39 +144,84 @@ describe("worktree operations", () => {
       expect(() => createWorktree(repoDir, "existing-branch")).toThrow();
     });
 
-    it("symlinks .claude directory from main repo into worktree", () => {
+    it("symlinks settings.local.json from main repo into worktree .claude dir", () => {
       const claudeDir = path.join(repoDir, ".claude");
       fs.mkdirSync(claudeDir);
       fs.writeFileSync(path.join(claudeDir, "settings.local.json"), '{"permissions":{}}');
 
       const worktreePath = createWorktree(repoDir, "with-claude");
       const worktreeClaudeDir = path.join(worktreePath, ".claude");
+      const worktreeSettingsJson = path.join(worktreeClaudeDir, "settings.local.json");
 
-      expect(fs.lstatSync(worktreeClaudeDir).isSymbolicLink()).toBe(true);
-      expect(fs.realpathSync(worktreeClaudeDir)).toBe(claudeDir);
-      // Permissions file is accessible through the symlink
-      expect(fs.existsSync(path.join(worktreeClaudeDir, "settings.local.json"))).toBe(true);
+      // .claude/ is a real directory, not a symlink
+      expect(fs.lstatSync(worktreeClaudeDir).isDirectory()).toBe(true);
+      expect(fs.lstatSync(worktreeClaudeDir).isSymbolicLink()).toBe(false);
+      // settings.local.json is a symlink pointing to the main repo's copy
+      expect(fs.lstatSync(worktreeSettingsJson).isSymbolicLink()).toBe(true);
+      expect(fs.realpathSync(worktreeSettingsJson)).toBe(path.join(claudeDir, "settings.local.json"));
     });
 
-    it("replaces tracked .claude directory with symlink when .claude is committed", () => {
-      // .claude/ is tracked by git — git worktree add copies it into the worktree
+    it("keeps .claude as real directory so tracked files are git-manageable", () => {
+      // .claude/ is committed — worktree gets a real copy from git
       const claudeDir = path.join(repoDir, ".claude");
       fs.mkdirSync(claudeDir);
       fs.writeFileSync(path.join(claudeDir, "settings.local.json"), '{"permissions":{}}');
+      fs.mkdirSync(path.join(claudeDir, "commands"));
+      fs.writeFileSync(path.join(claudeDir, "commands", "foo.md"), "# foo");
       execFileSync("git", ["add", ".claude"], { cwd: repoDir });
       execFileSync("git", ["commit", "-m", "add .claude"], { cwd: repoDir });
 
       const worktreePath = createWorktree(repoDir, "tracked-claude");
       const worktreeClaudeDir = path.join(worktreePath, ".claude");
 
-      // Should be a symlink, not a copied directory
-      expect(fs.lstatSync(worktreeClaudeDir).isSymbolicLink()).toBe(true);
-      expect(fs.realpathSync(worktreeClaudeDir)).toBe(claudeDir);
+      // .claude/ must be a real directory so the worktree can add/commit files in it
+      expect(fs.lstatSync(worktreeClaudeDir).isDirectory()).toBe(true);
+      expect(fs.lstatSync(worktreeClaudeDir).isSymbolicLink()).toBe(false);
+      // Committed files are present
+      expect(fs.existsSync(path.join(worktreeClaudeDir, "commands", "foo.md"))).toBe(true);
     });
 
-    it("skips symlink when main repo has no .claude directory", () => {
+    it("skips when main repo has no settings.local.json", () => {
       const worktreePath = createWorktree(repoDir, "no-claude");
-      expect(fs.existsSync(path.join(worktreePath, ".claude"))).toBe(false);
+      // No .claude/ created when source settings.local.json doesn't exist
+      expect(fs.existsSync(path.join(worktreePath, ".claude", "settings.local.json"))).toBe(false);
+    });
+
+    it("migrates old directory symlink to real directory with file symlink", () => {
+      const claudeDir = path.join(repoDir, ".claude");
+      fs.mkdirSync(claudeDir);
+      fs.writeFileSync(path.join(claudeDir, "settings.local.json"), '{"permissions":{}}');
+
+      // Simulate old behaviour: .claude is a directory symlink in the worktree
+      const worktreePath = createWorktree(repoDir, "migrate-test");
+      const worktreeClaudeDir = path.join(worktreePath, ".claude");
+      // Manually install the old symlink style
+      if (fs.existsSync(worktreeClaudeDir)) fs.rmSync(worktreeClaudeDir, { recursive: true });
+      fs.symlinkSync(claudeDir, worktreeClaudeDir);
+      expect(fs.lstatSync(worktreeClaudeDir).isSymbolicLink()).toBe(true);
+
+      // Re-running linkClaudeSettings should migrate it
+      linkClaudeSettings(repoDir, worktreePath);
+
+      expect(fs.lstatSync(worktreeClaudeDir).isDirectory()).toBe(true);
+      expect(fs.lstatSync(worktreeClaudeDir).isSymbolicLink()).toBe(false);
+      expect(fs.lstatSync(path.join(worktreeClaudeDir, "settings.local.json")).isSymbolicLink()).toBe(true);
+    });
+
+    it("leaves an existing real settings.local.json file untouched", () => {
+      const claudeDir = path.join(repoDir, ".claude");
+      fs.mkdirSync(claudeDir);
+      fs.writeFileSync(path.join(claudeDir, "settings.local.json"), '{"permissions":{}}');
+      // Commit it so the worktree gets a real copy
+      execFileSync("git", ["add", ".claude"], { cwd: repoDir });
+      execFileSync("git", ["commit", "-m", "add .claude"], { cwd: repoDir });
+
+      const worktreePath = createWorktree(repoDir, "real-settings");
+      const worktreeSettings = path.join(worktreePath, ".claude", "settings.local.json");
+
+      // Should be a real file (from git checkout), not replaced with symlink
+      expect(fs.lstatSync(worktreeSettings).isSymbolicLink()).toBe(false);
+      expect(fs.readFileSync(worktreeSettings, "utf8")).toBe('{"permissions":{}}');
     });
 
     it("creates worktree under custom base directory when provided", () => {
