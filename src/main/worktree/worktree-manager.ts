@@ -111,27 +111,53 @@ export function createWorktree(
     throw new Error(`Failed to create worktree: ${message}`);
   }
 
-  symlinkClaudeDir(options.repoPath, worktreePath);
+  linkClaudeSettings(options.repoPath, worktreePath);
 
   return worktreePath;
 }
 
-/** Symlink .claude/ from the main repo into a worktree so permissions are shared */
-export function symlinkClaudeDir(repoPath: string, worktreePath: string): void {
-  const sourceClaudeDir = path.join(repoPath, ".claude");
-  if (!fs.existsSync(sourceClaudeDir)) return;
+/**
+ * Symlink settings.local.json from the main repo into a worktree so tool
+ * permissions are shared, while leaving .claude/ as a real directory so git
+ * stash and normal git operations work without issues.
+ */
+export function linkClaudeSettings(repoPath: string, worktreePath: string): void {
+  const sourceSettingsJson = path.join(repoPath, ".claude", "settings.local.json");
+  if (!fs.existsSync(sourceSettingsJson)) return;
 
-  const targetClaudeDir = path.join(worktreePath, ".claude");
+  const worktreeClaudeDir = path.join(worktreePath, ".claude");
 
-  // If .claude already exists in the worktree (e.g. tracked by git),
-  // remove it first so we can replace it with a symlink
-  if (fs.existsSync(targetClaudeDir)) {
-    const stat = fs.lstatSync(targetClaudeDir);
-    if (stat.isSymbolicLink()) return; // already a symlink — nothing to do
-    fs.rmSync(targetClaudeDir, { recursive: true, force: true });
+  // Migrate from old behaviour: .claude/ was a directory symlink.
+  // Remove it and restore any tracked files so .claude/ becomes a real directory.
+  try {
+    const stat = fs.lstatSync(worktreeClaudeDir);
+    if (stat.isSymbolicLink()) {
+      fs.rmSync(worktreeClaudeDir);
+      try {
+        execFileSync("git", ["checkout", "--", ".claude"], {
+          cwd: worktreePath,
+          encoding: "utf8",
+          stdio: "pipe",
+        });
+      } catch {
+        // .claude is not tracked — just recreate the directory
+        fs.mkdirSync(worktreeClaudeDir);
+      }
+    }
+    // else: already a real directory — nothing to do
+  } catch {
+    // lstatSync threw — path doesn't exist, create the directory
+    fs.mkdirSync(worktreeClaudeDir);
   }
 
-  fs.symlinkSync(sourceClaudeDir, targetClaudeDir);
+  // Symlink settings.local.json if it isn't already there
+  const targetSettingsJson = path.join(worktreeClaudeDir, "settings.local.json");
+  try {
+    fs.lstatSync(targetSettingsJson);
+    // Already exists (real file or symlink) — leave it alone
+  } catch {
+    fs.symlinkSync(sourceSettingsJson, targetSettingsJson);
+  }
 }
 
 export function removeWorktree(worktreePath: string, branchName: string, repoPath: string): void {
