@@ -1,3 +1,4 @@
+import "./logger.js";
 import { execFileSync } from "node:child_process";
 import path from "node:path";
 import { app, BrowserWindow, Menu } from "electron";
