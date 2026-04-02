@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useSessionShortcuts } from "../../hooks/useChordShortcuts";
 import { useRepoStore } from "../../stores/repoStore";
 import { useSessionStore } from "../../stores/sessionStore";
+import { useThemeStore } from "../../stores/themeStore";
 import { NewSessionDialog } from "./NewSessionDialog";
 import { SessionListItem, type SessionListItemProps } from "./SessionListItem";
 import { WorktreeDeleteDialog } from "./WorktreeDeleteDialog";
@@ -34,7 +35,10 @@ export function Sidebar() {
 
   const reorderSessions = useSessionStore((state) => state.reorderSessions);
 
+  const toggleSettings = useThemeStore((state) => state.toggleSettings);
+
   const [archiveOpen, setArchiveOpen] = useState(false);
+  const [shortcutsOpen, setShortcutsOpen] = useState(false);
   const [metaHeld, setMetaHeld] = useState(false);
   const repoPickerRef = useRef<HTMLDivElement>(null);
 
@@ -259,6 +263,46 @@ export function Sidebar() {
         </div>
       )}
 
+      {/* Keyboard shortcuts panel */}
+      {shortcutsOpen && (
+        <div className="border-t border-white/[0.06] px-3 py-2.5 space-y-1.5">
+          <p className="text-[10px] font-medium text-text-muted uppercase tracking-wide mb-2">Shortcuts</p>
+          {SHORTCUTS.map(({ keys, label }) => (
+            <div key={label} className="flex items-center justify-between gap-2">
+              <span className="text-[11px] text-text-muted">{label}</span>
+              <kbd className="text-[10px] text-text-muted font-mono bg-white/5 rounded px-1.5 py-0.5 shrink-0">
+                {keys}
+              </kbd>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Bottom bar: keyboard shortcuts toggle + settings */}
+      <div className="border-t border-white/[0.06] flex items-center px-2 py-1.5">
+        <button
+          type="button"
+          onClick={() => setShortcutsOpen(!shortcutsOpen)}
+          className={`w-6 h-6 flex items-center justify-center rounded-md transition-colors ${
+            shortcutsOpen
+              ? "text-text-primary bg-white/10"
+              : "text-text-muted hover:text-text-primary hover:bg-white/10"
+          }`}
+          title="Keyboard shortcuts"
+        >
+          <KeyboardIcon />
+        </button>
+        <div className="flex-1" />
+        <button
+          type="button"
+          onClick={toggleSettings}
+          className="w-6 h-6 flex items-center justify-center rounded-md text-text-muted hover:text-text-primary hover:bg-white/10 transition-colors"
+          title="Settings (⌘,)"
+        >
+          <GearIcon />
+        </button>
+      </div>
+
       {/* New session dialog */}
       {pendingNewSessionRepo && (
         <NewSessionDialog
@@ -282,6 +326,14 @@ export function Sidebar() {
     </aside>
   );
 }
+
+const SHORTCUTS = [
+  { keys: "⌘N", label: "New session" },
+  { keys: "⌘,", label: "Settings" },
+  { keys: "⌘B", label: "Toggle sidebar" },
+  { keys: "⌘1-9", label: "Jump to session" },
+  { keys: "Esc×2", label: "Stop agent" },
+];
 
 function SortableSessionItem(props: Omit<SessionListItemProps, "sortableProps">) {
   const sortable = useSortable({ id: props.session.id });
@@ -320,6 +372,42 @@ function ChevronIcon({ open }: { open: boolean }) {
       className={`transition-transform ${open ? "rotate-90" : ""}`}
     >
       <polyline points="9 18 15 12 9 6" />
+    </svg>
+  );
+}
+
+function GearIcon() {
+  return (
+    <svg
+      width="14"
+      height="14"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <circle cx="12" cy="12" r="3" />
+      <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
+    </svg>
+  );
+}
+
+function KeyboardIcon() {
+  return (
+    <svg
+      width="14"
+      height="14"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <rect x="2" y="6" width="20" height="12" rx="2" />
+      <path d="M6 10h.01M10 10h.01M14 10h.01M18 10h.01M8 14h8" />
     </svg>
   );
 }
