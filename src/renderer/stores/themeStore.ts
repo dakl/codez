@@ -12,9 +12,11 @@ export function applyThemeToElement(theme: ThemeDefinition, element: HTMLElement
 interface ThemeState {
   activeThemeId: ThemeId;
   settingsOpen: boolean;
+  sidebarCollapsed: boolean;
 
   toggleSettings: () => void;
   closeSettings: () => void;
+  toggleSidebar: () => void;
   setTheme: (id: ThemeId) => void;
   loadTheme: () => Promise<void>;
 }
@@ -22,9 +24,14 @@ interface ThemeState {
 export const useThemeStore = create<ThemeState>((set) => ({
   activeThemeId: DEFAULT_THEME_ID,
   settingsOpen: false,
+  sidebarCollapsed: false,
 
   toggleSettings: () => {
     set((state) => ({ settingsOpen: !state.settingsOpen }));
+  },
+
+  toggleSidebar: () => {
+    set((state) => ({ sidebarCollapsed: !state.sidebarCollapsed }));
   },
 
   closeSettings: () => {

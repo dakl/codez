@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useSessionShortcuts } from "../../hooks/useChordShortcuts";
 import { useRepoStore } from "../../stores/repoStore";
 import { useSessionStore } from "../../stores/sessionStore";
+import { useThemeStore } from "../../stores/themeStore";
 import { NewSessionDialog } from "./NewSessionDialog";
 import { SessionListItem, type SessionListItemProps } from "./SessionListItem";
 import { WorktreeDeleteDialog } from "./WorktreeDeleteDialog";
@@ -34,9 +35,11 @@ export function Sidebar() {
 
   const reorderSessions = useSessionStore((state) => state.reorderSessions);
 
+  const collapsed = useThemeStore((state) => state.sidebarCollapsed);
+  const toggleSidebar = useThemeStore((state) => state.toggleSidebar);
+
   const [archiveOpen, setArchiveOpen] = useState(false);
   const [metaHeld, setMetaHeld] = useState(false);
-  const [collapsed, setCollapsed] = useState(false);
   const repoPickerRef = useRef<HTMLDivElement>(null);
 
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }));
@@ -202,9 +205,9 @@ export function Sidebar() {
           )}
           <button
             type="button"
-            onClick={() => setCollapsed(!collapsed)}
+            onClick={toggleSidebar}
             className="w-6 h-6 flex items-center justify-center rounded-md text-text-muted hover:text-text-primary hover:bg-white/10 transition-colors"
-            title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+            title={collapsed ? "Expand sidebar (⌘\\)" : "Collapse sidebar (⌘\\)"}
           >
             <CollapseIcon collapsed={collapsed} />
           </button>
