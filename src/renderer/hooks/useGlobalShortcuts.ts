@@ -12,7 +12,7 @@ export function isNewSessionShortcut(event: KeyboardEvent): boolean {
 }
 
 export function isSidebarToggleShortcut(event: KeyboardEvent): boolean {
-  return event.key === "\\" && event.metaKey && !event.shiftKey && !event.altKey && !event.ctrlKey;
+  return event.key === "b" && event.metaKey && !event.shiftKey && !event.altKey && !event.ctrlKey;
 }
 
 export function useGlobalShortcuts(): void {

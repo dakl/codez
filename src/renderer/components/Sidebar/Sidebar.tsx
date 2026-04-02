@@ -207,7 +207,7 @@ export function Sidebar() {
             type="button"
             onClick={toggleSidebar}
             className="w-6 h-6 flex items-center justify-center rounded-md text-text-muted hover:text-text-primary hover:bg-white/10 transition-colors"
-            title={collapsed ? "Expand sidebar (⌘\\)" : "Collapse sidebar (⌘\\)"}
+            title={collapsed ? "Expand sidebar (⌘B)" : "Collapse sidebar (⌘B)"}
           >
             <CollapseIcon collapsed={collapsed} />
           </button>
