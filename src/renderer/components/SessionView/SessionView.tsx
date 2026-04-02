@@ -54,7 +54,26 @@ export function SessionView() {
   }, [isRunning]);
 
   const worktreePath = session?.worktreePath;
-  const branchName = session?.branchName ?? null;
+  const folderName = worktreePath?.split("/").pop() ?? null;
+
+  const [liveBranch, setLiveBranch] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!worktreePath) {
+      setLiveBranch(null);
+      return;
+    }
+
+    const fetchBranch = () => {
+      window.electronAPI.getRepoBranch(worktreePath).then((branch) => {
+        setLiveBranch(branch);
+      });
+    };
+
+    fetchBranch();
+    const interval = setInterval(fetchBranch, 3000);
+    return () => clearInterval(interval);
+  }, [worktreePath]);
 
   if (!activeSessionId || !session) {
     return (
@@ -75,8 +94,8 @@ export function SessionView() {
     <div className="flex-1 flex flex-col min-h-0">
       {/* Session header */}
       <div className="h-10 flex items-center px-4 border-b border-border gap-2">
-        <span className="text-sm font-medium text-text-primary font-mono">{worktreePath}</span>
-        {branchName && <span className="text-xs text-text-muted font-mono">{branchName}</span>}
+        <span className="text-sm font-medium text-text-primary font-mono">{folderName}</span>
+        {liveBranch && <span className="text-xs text-text-muted font-mono">{liveBranch}</span>}
         <StatusBadge status={session.status} />
       </div>
 
