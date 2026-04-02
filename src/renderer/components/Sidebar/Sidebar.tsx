@@ -182,9 +182,14 @@ export function Sidebar() {
       {/* Draggable title bar + header */}
       <div className="h-12 flex items-center px-2 [-webkit-app-region:drag] shrink-0">
         {!collapsed && (
-          <span className="text-[13px] font-medium text-text-muted ml-16 flex-1 whitespace-nowrap overflow-hidden">Codez</span>
+          <span className="text-[13px] font-medium text-text-muted ml-16 flex-1 whitespace-nowrap overflow-hidden">
+            Codez
+          </span>
         )}
-        <div className={`flex items-center gap-1 [-webkit-app-region:no-drag] ${collapsed ? "mx-auto" : ""}`} ref={repoPickerRef}>
+        <div
+          className={`flex items-center gap-1 [-webkit-app-region:no-drag] ${collapsed ? "mx-auto" : ""}`}
+          ref={repoPickerRef}
+        >
           {!collapsed && (
             <button
               type="button"
