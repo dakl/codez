@@ -1,6 +1,7 @@
 .PHONY: dev build lint format test test-watch test-e2e build-release clean
 
 dev: ## Start dev mode with isolated DB (safe to run alongside prod app)
+	xattr -cr node_modules/electron/dist/Electron.app 2>/dev/null || true
 	E2E_DATA_DIR=$(HOME)/.codez-dev npm run dev
 
 build:
