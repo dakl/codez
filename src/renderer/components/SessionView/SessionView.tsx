@@ -54,6 +54,7 @@ export function SessionView() {
   }, [isRunning]);
 
   const worktreePath = session?.worktreePath;
+  const folderName = worktreePath?.split("/").pop() ?? null;
 
   const [liveBranch, setLiveBranch] = useState<string | null>(null);
 
@@ -86,7 +87,7 @@ export function SessionView() {
     <div className="flex-1 flex flex-col min-h-0">
       {/* Session header */}
       <div className="h-10 flex items-center px-4 border-b border-border gap-2">
-        <span className="text-sm font-medium text-text-primary font-mono">{worktreePath}</span>
+        <span className="text-sm font-medium text-text-primary font-mono">{folderName}</span>
         {liveBranch && <span className="text-xs text-text-muted font-mono">{liveBranch}</span>}
         <StatusBadge status={session.status} />
       </div>
