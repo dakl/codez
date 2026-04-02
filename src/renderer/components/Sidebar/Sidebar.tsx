@@ -36,6 +36,7 @@ export function Sidebar() {
 
   const [archiveOpen, setArchiveOpen] = useState(false);
   const [metaHeld, setMetaHeld] = useState(false);
+  const [collapsed, setCollapsed] = useState(false);
   const repoPickerRef = useRef<HTMLDivElement>(null);
 
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }));
@@ -175,62 +176,78 @@ export function Sidebar() {
   ]);
 
   return (
-    <aside className="w-60 border-r border-white/[0.06] bg-transparent flex flex-col">
+    <aside
+      className={`${collapsed ? "w-10" : "w-60"} border-r border-white/[0.06] bg-transparent flex flex-col transition-[width] duration-200 ease-in-out overflow-hidden`}
+    >
       {/* Draggable title bar + header */}
-      <div className="h-12 flex items-center px-4 [-webkit-app-region:drag]">
-        <span className="text-[13px] font-medium text-text-muted ml-16 flex-1">Codez</span>
-        <div className="[-webkit-app-region:no-drag]" ref={repoPickerRef}>
+      <div className="h-12 flex items-center px-2 [-webkit-app-region:drag] shrink-0">
+        {!collapsed && (
+          <span className="text-[13px] font-medium text-text-muted ml-16 flex-1 whitespace-nowrap overflow-hidden">Codez</span>
+        )}
+        <div className={`flex items-center gap-1 [-webkit-app-region:no-drag] ${collapsed ? "mx-auto" : ""}`} ref={repoPickerRef}>
+          {!collapsed && (
+            <button
+              type="button"
+              onClick={handleNewSessionClick}
+              className="w-6 h-6 flex items-center justify-center rounded-md text-text-muted hover:text-text-primary hover:bg-white/10 transition-colors"
+              title="New session"
+            >
+              <PlusIcon />
+            </button>
+          )}
           <button
             type="button"
-            onClick={handleNewSessionClick}
+            onClick={() => setCollapsed(!collapsed)}
             className="w-6 h-6 flex items-center justify-center rounded-md text-text-muted hover:text-text-primary hover:bg-white/10 transition-colors"
-            title="New session"
+            title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
           >
-            <PlusIcon />
+            <CollapseIcon collapsed={collapsed} />
           </button>
         </div>
       </div>
 
       {/* Session list — sorted by user-defined order */}
-      <div className="flex-1 overflow-y-auto px-1.5 py-1 space-y-0.5">
-        {sessions.length === 0 ? (
-          <div className="flex items-center justify-center h-32">
-            <p className="text-xs text-text-muted">
-              {repos.length === 0 ? "Add a folder to get started" : "No sessions yet"}
-            </p>
-          </div>
-        ) : (
-          <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-            <SortableContext items={sessions.map((s) => s.id)} strategy={verticalListSortingStrategy}>
-              {sessions.map((session, index) => (
-                <SortableSessionItem
-                  key={session.id}
-                  session={session}
-                  isActive={session.id === activeSessionId}
-                  onClick={() => setActiveSession(session.id)}
-                  onArchive={() => handleArchiveSession(session)}
-                  branchName={session.branchName ?? branches.get(session.repoPath)}
-                  shortcutNumber={metaHeld && index < 9 ? index + 1 : null}
-                />
-              ))}
-            </SortableContext>
-          </DndContext>
-        )}
+      {!collapsed && (
+        <div className="flex-1 overflow-y-auto px-1.5 py-1 space-y-0.5">
+          {sessions.length === 0 ? (
+            <div className="flex items-center justify-center h-32">
+              <p className="text-xs text-text-muted">
+                {repos.length === 0 ? "Add a folder to get started" : "No sessions yet"}
+              </p>
+            </div>
+          ) : (
+            <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+              <SortableContext items={sessions.map((s) => s.id)} strategy={verticalListSortingStrategy}>
+                {sessions.map((session, index) => (
+                  <SortableSessionItem
+                    key={session.id}
+                    session={session}
+                    isActive={session.id === activeSessionId}
+                    onClick={() => setActiveSession(session.id)}
+                    onArchive={() => handleArchiveSession(session)}
+                    branchName={session.branchName ?? branches.get(session.repoPath)}
+                    shortcutNumber={metaHeld && index < 9 ? index + 1 : null}
+                  />
+                ))}
+              </SortableContext>
+            </DndContext>
+          )}
 
-        {/* Add folder link — only when no repos exist */}
-        {repos.length === 0 && (
-          <button
-            type="button"
-            onClick={addRepoViaDialog}
-            className="w-full text-left px-3 py-1.5 text-xs text-text-muted hover:text-accent transition-colors [-webkit-app-region:no-drag]"
-          >
-            + Add folder...
-          </button>
-        )}
-      </div>
+          {/* Add folder link — only when no repos exist */}
+          {repos.length === 0 && (
+            <button
+              type="button"
+              onClick={addRepoViaDialog}
+              className="w-full text-left px-3 py-1.5 text-xs text-text-muted hover:text-accent transition-colors [-webkit-app-region:no-drag]"
+            >
+              + Add folder...
+            </button>
+          )}
+        </div>
+      )}
 
       {/* Archive accordion */}
-      {archivedSessions.length > 0 && (
+      {!collapsed && archivedSessions.length > 0 && (
         <div className="border-t border-white/[0.06]">
           <button
             type="button"
@@ -302,6 +319,24 @@ function PlusIcon() {
     >
       <line x1="12" y1="5" x2="12" y2="19" />
       <line x1="5" y1="12" x2="19" y2="12" />
+    </svg>
+  );
+}
+
+function CollapseIcon({ collapsed }: { collapsed: boolean }) {
+  return (
+    <svg
+      width="14"
+      height="14"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={`transition-transform ${collapsed ? "rotate-180" : ""}`}
+    >
+      <polyline points="15 18 9 12 15 6" />
     </svg>
   );
 }
