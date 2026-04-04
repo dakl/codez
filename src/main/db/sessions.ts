@@ -14,6 +14,10 @@ interface SessionRow {
   created_at: string;
   last_active_at: string;
   sort_order: number;
+  binary_name: string | null;
+  extra_args: string | null;
+  preset_name: string | null;
+  env_vars: string | null;
 }
 
 function rowToSession(row: SessionRow): SessionInfo {
@@ -28,6 +32,10 @@ function rowToSession(row: SessionRow): SessionInfo {
     name: row.name,
     createdAt: row.created_at,
     lastActiveAt: row.last_active_at,
+    binaryName: row.binary_name,
+    extraArgs: row.extra_args,
+    profileName: row.preset_name,
+    envVars: row.env_vars,
   };
 }
 
@@ -37,6 +45,10 @@ interface CreateSessionParams {
   branchName?: string | null;
   agentType: AgentType;
   name: string;
+  binaryName?: string | null;
+  extraArgs?: string | null;
+  profileName?: string | null;
+  envVars?: string | null;
 }
 
 export function createSession(db: Database.Database, params: CreateSessionParams): SessionInfo {
@@ -45,7 +57,7 @@ export function createSession(db: Database.Database, params: CreateSessionParams
     db.prepare("SELECT COALESCE(MAX(sort_order), -1) as max_order FROM sessions").get() as { max_order: number }
   ).max_order;
   db.prepare(
-    "INSERT INTO sessions (id, repo_path, worktree_path, branch_name, agent_type, name, sort_order) VALUES (?, ?, ?, ?, ?, ?, ?)",
+    "INSERT INTO sessions (id, repo_path, worktree_path, branch_name, agent_type, name, sort_order, binary_name, extra_args, preset_name, env_vars) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
   ).run(
     id,
     params.repoPath,
@@ -54,6 +66,10 @@ export function createSession(db: Database.Database, params: CreateSessionParams
     params.agentType,
     params.name,
     maxOrder + 1,
+    params.binaryName ?? null,
+    params.extraArgs ?? null,
+    params.profileName ?? null,
+    params.envVars ?? null,
   );
   return getSession(db, id) as SessionInfo;
 }

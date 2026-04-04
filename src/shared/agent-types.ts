@@ -20,6 +20,10 @@ export interface SessionInfo {
   name: string;
   createdAt: string;
   lastActiveAt: string;
+  binaryName: string | null;
+  extraArgs: string | null;
+  profileName: string | null;
+  envVars: string | null;
 }
 
 export type AgentEventType =
