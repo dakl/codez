@@ -120,15 +120,17 @@ export function registerIpcHandlers(options: RegisterHandlersOptions): void {
         name?: string;
         baseBranch?: string;
         fetchFirst?: boolean;
+        profileId?: string;
       },
     ) => {
-      const { repoPath, agentType, branchName, name, baseBranch, fetchFirst } = options;
+      const { repoPath, agentType, branchName, name, baseBranch, fetchFirst, profileId } = options;
       const sessionName = name || `Session ${Date.now()}`;
       let worktreePath = repoPath;
       let resolvedBranch: string | null = null;
 
+      const settings = readSettings(settingsPath);
+
       if (branchName) {
-        const settings = readSettings(settingsPath);
         worktreePath = createWorktree({
           repoPath,
           branchName,
@@ -139,7 +141,19 @@ export function registerIpcHandlers(options: RegisterHandlersOptions): void {
         resolvedBranch = branchName;
       }
 
-      return createSession(db, { repoPath, worktreePath, branchName: resolvedBranch, agentType, name: sessionName });
+      const profile = profileId ? settings.commandProfiles?.find((p) => p.id === profileId) : undefined;
+
+      return createSession(db, {
+        repoPath,
+        worktreePath,
+        branchName: resolvedBranch,
+        agentType,
+        name: sessionName,
+        binaryName: profile?.executable ?? null,
+        extraArgs: profile?.extraArgs ?? null,
+        profileName: profile?.name ?? null,
+        envVars: profile?.envVars ?? null,
+      });
     },
   );
 
@@ -201,7 +215,17 @@ export function registerIpcHandlers(options: RegisterHandlersOptions): void {
       // Legacy sessions stored "used" as a boolean marker — treat those as new sessions.
       const sessionRecord = getSession(db, sessionId);
       const storedSessionId = sessionRecord?.agentSessionId === "used" ? null : (sessionRecord?.agentSessionId ?? null);
-      ptyManager.create(sessionId, agentType, worktreePath, cols, rows, storedSessionId);
+      ptyManager.create(
+        sessionId,
+        agentType,
+        worktreePath,
+        cols,
+        rows,
+        storedSessionId,
+        sessionRecord?.binaryName,
+        sessionRecord?.extraArgs,
+        sessionRecord?.envVars,
+      );
 
       // Store the session ID so future launches use --resume
       if (!storedSessionId) {

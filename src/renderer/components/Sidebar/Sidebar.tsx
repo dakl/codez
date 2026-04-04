@@ -110,7 +110,7 @@ export function Sidebar() {
   }, [addRepoViaDialog, setPendingNewSessionRepo]);
 
   const handleNewSessionConfirm = useCallback(
-    async (options: { branchName?: string; baseBranch?: string; fetchFirst?: boolean }) => {
+    async (options: { branchName?: string; baseBranch?: string; fetchFirst?: boolean; profileId?: string }) => {
       if (!pendingNewSessionRepo) return;
       await createSession({
         repoPath: pendingNewSessionRepo.path,
@@ -118,6 +118,7 @@ export function Sidebar() {
         branchName: options.branchName,
         baseBranch: options.baseBranch,
         fetchFirst: options.fetchFirst,
+        profileId: options.profileId,
       });
       setPendingNewSessionRepo(null);
     },
