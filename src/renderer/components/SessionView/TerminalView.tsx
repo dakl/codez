@@ -134,7 +134,7 @@ export function TerminalView({ sessionId, agentType, worktreePath, isActive }: T
       terminal.attachCustomKeyEventHandler((event) => {
         if (event.key === "Enter" && event.shiftKey) {
           if (event.type === "keydown") {
-            window.electronAPI.ptyInput(sessionId, "\n");
+            window.electronAPI.ptyInput(sessionId, "\n").catch(() => {});
           }
           return false;
         }
@@ -143,7 +143,7 @@ export function TerminalView({ sessionId, agentType, worktreePath, isActive }: T
 
       // Forward keystrokes to PTY
       terminal.onData((data) => {
-        window.electronAPI.ptyInput(sessionId, data);
+        window.electronAPI.ptyInput(sessionId, data).catch(() => {});
       });
 
       // Subscribe to PTY output — buffer writes when terminal is hidden

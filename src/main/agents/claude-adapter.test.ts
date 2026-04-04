@@ -44,6 +44,28 @@ describe("ClaudeAdapter", () => {
       expect(args).not.toContain("--resume");
       expect(args).not.toContain("--continue");
     });
+
+    it("appends extraArgs to the argument list", () => {
+      const adapterWithExtra = new ClaudeAdapter({
+        sessionId: "test-session-1",
+        worktreePath: "/tmp/worktree",
+        extraArgs: ["--model", "claude-opus-4-5", "--max-turns", "10"],
+      });
+      const args = adapterWithExtra.buildStartArgs("Hello");
+      expect(args).toContain("--model");
+      expect(args).toContain("claude-opus-4-5");
+      expect(args).toContain("--max-turns");
+      expect(args).toContain("10");
+      // extraArgs should come after the standard args
+      const modelIndex = args.indexOf("--model");
+      const verboseIndex = args.indexOf("--verbose");
+      expect(modelIndex).toBeGreaterThan(verboseIndex);
+    });
+
+    it("works without extraArgs (empty by default)", () => {
+      const args = adapter.buildStartArgs("Hello");
+      expect(args).not.toContain("--model");
+    });
   });
 
   describe("buildResumeArgs", () => {
@@ -66,6 +88,21 @@ describe("ClaudeAdapter", () => {
       adapter.setAgentSessionId("claude-session-abc");
       const args = adapter.buildResumeArgs("Continue");
       expect(args).not.toContain("--session-id");
+    });
+
+    it("appends extraArgs to the resume argument list", () => {
+      const adapterWithExtra = new ClaudeAdapter({
+        sessionId: "test-session-1",
+        worktreePath: "/tmp/worktree",
+        extraArgs: ["--model", "claude-opus-4-5"],
+      });
+      adapterWithExtra.setAgentSessionId("claude-session-abc");
+      const args = adapterWithExtra.buildResumeArgs("Continue");
+      expect(args).toContain("--model");
+      expect(args).toContain("claude-opus-4-5");
+      const modelIndex = args.indexOf("--model");
+      const resumeIndex = args.indexOf("--resume");
+      expect(modelIndex).toBeGreaterThan(resumeIndex);
     });
   });
 

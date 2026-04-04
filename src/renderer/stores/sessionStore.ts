@@ -21,6 +21,7 @@ interface SessionState {
     branchName?: string;
     baseBranch?: string;
     fetchFirst?: boolean;
+    profileId?: string;
   }) => Promise<SessionInfo>;
   setActiveSession: (sessionId: string | null) => void;
   deleteSession: (sessionId: string) => Promise<void>;

@@ -1,6 +1,6 @@
 import Database from "better-sqlite3";
 
-export const SCHEMA_VERSION = 4;
+export const SCHEMA_VERSION = 7;
 
 const SCHEMA = `
   CREATE TABLE IF NOT EXISTS repos (
@@ -41,10 +41,13 @@ const SCHEMA = `
   CREATE INDEX IF NOT EXISTS idx_messages_timestamp ON messages(timestamp);
 `;
 
-const MIGRATIONS: Record<number, string> = {
-  2: "ALTER TABLE messages ADD COLUMN thinking TEXT",
-  3: "ALTER TABLE sessions ADD COLUMN sort_order INTEGER NOT NULL DEFAULT 0",
-  4: "ALTER TABLE sessions ADD COLUMN branch_name TEXT",
+const MIGRATIONS: Record<number, string[]> = {
+  2: ["ALTER TABLE messages ADD COLUMN thinking TEXT"],
+  3: ["ALTER TABLE sessions ADD COLUMN sort_order INTEGER NOT NULL DEFAULT 0"],
+  4: ["ALTER TABLE sessions ADD COLUMN branch_name TEXT"],
+  5: ["ALTER TABLE sessions ADD COLUMN binary_name TEXT", "ALTER TABLE sessions ADD COLUMN extra_args TEXT"],
+  6: ["ALTER TABLE sessions ADD COLUMN preset_name TEXT"],
+  7: ["ALTER TABLE sessions ADD COLUMN env_vars TEXT"],
 };
 
 export function createDatabase(dbPath: string): Database.Database {
@@ -58,12 +61,14 @@ export function createDatabase(dbPath: string): Database.Database {
   // Run migrations for existing databases
   const currentVersion = (db.pragma("user_version", { simple: true }) as number) ?? 0;
   for (let version = currentVersion + 1; version <= SCHEMA_VERSION; version++) {
-    const migration = MIGRATIONS[version];
-    if (migration) {
-      try {
-        db.exec(migration);
-      } catch {
-        // Column may already exist if schema was created fresh
+    const statements = MIGRATIONS[version];
+    if (statements) {
+      for (const statement of statements) {
+        try {
+          db.exec(statement);
+        } catch {
+          // Column may already exist if schema was created fresh
+        }
       }
     }
   }

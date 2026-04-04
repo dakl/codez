@@ -84,8 +84,12 @@ export function SessionListItem({
       {/* Text content */}
       <div className="flex-1 min-w-0">
         <div className="text-[13px] leading-tight truncate font-mono">{folder}</div>
-        {branchName && (
-          <div className="text-[11px] leading-tight text-text-muted truncate mt-0.5 font-mono">{branchName}</div>
+        {(branchName || session.profileName) && (
+          <div className="text-[11px] leading-tight text-text-muted mt-0.5 font-mono flex items-center gap-1 min-w-0 overflow-hidden">
+            {branchName && <span className="truncate min-w-0">{branchName}</span>}
+            {branchName && session.profileName && <span className="opacity-40 shrink-0">·</span>}
+            {session.profileName && <span className="text-accent/70 shrink-0">{session.profileName}</span>}
+          </div>
         )}
       </div>
 

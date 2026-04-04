@@ -32,7 +32,7 @@ describe("PtyManager", () => {
       lastMockPty = createMockPty();
       return lastMockPty;
     });
-    const manager = new PtyManager(spawnFn);
+    const manager = new PtyManager(spawnFn, () => ({}));
     return { manager, spawnFn, getLastPty: () => lastMockPty as MockPty };
   }
 
@@ -58,6 +58,26 @@ describe("PtyManager", () => {
 
       const callOptions = spawnFn.mock.calls[0][2] as { env: Record<string, string> };
       expect(callOptions.env.TERM).toBe("xterm-256color");
+    });
+
+    it("merges shell env vars into the PTY environment", () => {
+      const spawnFn = vi.fn((_f: string, _a: string[], _o: unknown) => createMockPty());
+      const shellEnvProvider = () => ({ MY_TOKEN: "secret123", MY_PATH: "/custom/bin:/usr/bin" });
+      const manager = new PtyManager(spawnFn, shellEnvProvider);
+      manager.create("session-1", "claude", "/repo", 80, 24);
+
+      const callOptions = spawnFn.mock.calls[0][2] as { env: Record<string, string> };
+      expect(callOptions.env.MY_TOKEN).toBe("secret123");
+      expect(callOptions.env.MY_PATH).toBe("/custom/bin:/usr/bin");
+    });
+
+    it("does not pass CLAUDECODE to the PTY environment", () => {
+      const spawnFn = vi.fn((_f: string, _a: string[], _o: unknown) => createMockPty());
+      const manager = new PtyManager(spawnFn, () => ({ CLAUDECODE: "1" }));
+      manager.create("session-1", "claude", "/repo", 80, 24);
+
+      const callOptions = spawnFn.mock.calls[0][2] as { env: Record<string, string> };
+      expect(callOptions.env.CLAUDECODE).toBeUndefined();
     });
 
     it("passes --session-id for first launch of a claude session", () => {
@@ -87,6 +107,33 @@ describe("PtyManager", () => {
       manager.create("session-1", "gemini", "/repo", 80, 24);
 
       expect(spawnFn).toHaveBeenCalledWith("gemini", [], expect.objectContaining({ cwd: "/repo" }));
+    });
+
+    it("uses binaryNameOverride instead of agentType when provided", () => {
+      const { manager, spawnFn } = createManager();
+      manager.create("session-1", "claude", "/repo", 80, 24, null, "claude-work");
+
+      expect(spawnFn).toHaveBeenCalledWith("claude-work", expect.any(Array), expect.objectContaining({ cwd: "/repo" }));
+    });
+
+    it("appends parsed extraArgsStr to the args", () => {
+      const { manager, spawnFn } = createManager();
+      manager.create("session-1", "claude", "/repo", 80, 24, null, null, "--model claude-opus-4-5 --max-turns 10");
+
+      const calledArgs = spawnFn.mock.calls[0][1] as string[];
+      expect(calledArgs).toContain("--model");
+      expect(calledArgs).toContain("claude-opus-4-5");
+      expect(calledArgs).toContain("--max-turns");
+      expect(calledArgs).toContain("10");
+    });
+
+    it("ignores empty extraArgsStr", () => {
+      const { manager, spawnFn } = createManager();
+      manager.create("session-1", "claude", "/repo", 80, 24, null, null, "  ");
+
+      const calledArgs = spawnFn.mock.calls[0][1] as string[];
+      // Should only have --session-id args, no extra flags
+      expect(calledArgs).toEqual(["--session-id", "session-1"]);
     });
   });
 

@@ -1,5 +1,13 @@
 import type { AgentConfig, AgentEvent, AgentType, ChangedFile, SessionInfo, SessionStatus } from "./agent-types";
 
+export interface CommandProfile {
+  id: string;
+  name: string;
+  executable: string;
+  extraArgs: string;
+  envVars: string; // newline-separated KEY=VALUE pairs
+}
+
 export interface RepoInfo {
   path: string;
   name: string;
@@ -30,6 +38,7 @@ export interface AppSettings {
   appIcon?: string;
   /** Base directory for worktrees. Defaults to sibling of repo (<repo>--<branch>). */
   worktreeBaseDir?: string;
+  commandProfiles?: CommandProfile[];
 }
 
 export interface CreateSessionOptions {
@@ -39,6 +48,7 @@ export interface CreateSessionOptions {
   name?: string;
   baseBranch?: string;
   fetchFirst?: boolean;
+  profileId?: string;
 }
 
 export interface ElectronAPI {

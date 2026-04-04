@@ -6,6 +6,7 @@ interface CreateAdapterOptions {
   sessionId: string;
   worktreePath: string;
   additionalDirs?: string[];
+  extraArgs?: string[];
 }
 
 export function createAdapter(options: CreateAdapterOptions): ClaudeAdapter {
@@ -15,6 +16,7 @@ export function createAdapter(options: CreateAdapterOptions): ClaudeAdapter {
         sessionId: options.sessionId,
         worktreePath: options.worktreePath,
         additionalDirs: options.additionalDirs,
+        extraArgs: options.extraArgs,
       });
     default:
       throw new Error(`No adapter available for agent type: ${options.agentType}`);

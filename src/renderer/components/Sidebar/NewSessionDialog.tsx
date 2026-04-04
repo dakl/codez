@@ -1,9 +1,15 @@
+import type { CommandProfile } from "@shared/types";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 interface NewSessionDialogProps {
   repoName: string;
   repoPath: string;
-  onConfirm: (options: { branchName?: string; baseBranch?: string; fetchFirst?: boolean }) => void | Promise<void>;
+  onConfirm: (options: {
+    branchName?: string;
+    baseBranch?: string;
+    fetchFirst?: boolean;
+    profileId?: string;
+  }) => void | Promise<void>;
   onCancel: () => void;
 }
 
@@ -17,36 +23,43 @@ export function NewSessionDialog({ repoName, repoPath, onConfirm, onCancel }: Ne
   const [defaultBranch, setDefaultBranch] = useState<string>("main");
   const [baseBranch, setBaseBranch] = useState<string>("");
   const [fetchFirst, setFetchFirst] = useState(true);
+  const [profiles, setProfiles] = useState<CommandProfile[]>([]);
+  const [selectedProfileId, setSelectedProfileId] = useState<string>("");
 
   useEffect(() => {
-    Promise.all([window.electronAPI.listBranches(repoPath), window.electronAPI.getDefaultBranch(repoPath)]).then(
-      ([branchList, detectedDefault]) => {
+    // Load profiles independently — a branch lookup failure must not hide them.
+    window.electronAPI.getSettings().then((settings) => {
+      setProfiles(settings.commandProfiles ?? []);
+    });
+    Promise.all([window.electronAPI.listBranches(repoPath), window.electronAPI.getDefaultBranch(repoPath)])
+      .then(([branchList, detectedDefault]) => {
         setBranches(branchList);
         setDefaultBranch(detectedDefault);
         setBaseBranch(detectedDefault);
-      },
-    );
+      })
+      .catch(() => {});
   }, [repoPath]);
 
   const handleSubmit = useCallback(async () => {
     setError(null);
     const trimmed = branchName.trim();
+    const profileId = selectedProfileId || undefined;
 
     if (!trimmed) {
-      onConfirm({});
+      onConfirm({ profileId });
       return;
     }
 
     setLoading(true);
     try {
-      await onConfirm({ branchName: trimmed, baseBranch, fetchFirst });
+      await onConfirm({ branchName: trimmed, baseBranch, fetchFirst, profileId });
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : String(err);
       setError(message);
     } finally {
       setLoading(false);
     }
-  }, [branchName, baseBranch, fetchFirst, onConfirm]);
+  }, [branchName, baseBranch, fetchFirst, selectedProfileId, onConfirm]);
 
   const handleKeyDown = useCallback(
     (event: React.KeyboardEvent) => {
@@ -87,6 +100,25 @@ export function NewSessionDialog({ repoName, repoPath, onConfirm, onCancel }: Ne
           disabled={loading}
           className="w-full px-3 py-1.5 bg-input border border-border rounded-lg text-[13px] text-text-primary placeholder:text-text-muted/50 focus:outline-none focus:ring-1 focus:ring-accent/50 font-mono"
         />
+
+        {profiles.length > 0 && (
+          <div className="mt-3">
+            <label className="text-[11px] text-text-muted block mb-1">Profile</label>
+            <select
+              value={selectedProfileId}
+              onChange={(e) => setSelectedProfileId(e.target.value)}
+              disabled={loading}
+              className="w-full px-2 py-1 bg-input border border-border rounded-lg text-[12px] text-text-primary focus:outline-none focus:ring-1 focus:ring-accent/50"
+            >
+              <option value="">Default (claude)</option>
+              {profiles.map((preset) => (
+                <option key={preset.id} value={preset.id}>
+                  {preset.name} ({preset.executable})
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
 
         {showBranchOptions && (
           <div className="mt-3 space-y-2">
