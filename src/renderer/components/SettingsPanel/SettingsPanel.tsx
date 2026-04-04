@@ -1,4 +1,4 @@
-import type { FontInfo } from "@shared/types";
+import type { CommandProfile, FontInfo } from "@shared/types";
 import { useCallback, useEffect, useState } from "react";
 import { useFontStore } from "../../stores/fontStore";
 import { useThemeStore } from "../../stores/themeStore";
@@ -38,6 +38,13 @@ export function SettingsPanel() {
   const [iconDataUrls, setIconDataUrls] = useState<Record<string, string>>({});
   const [appVersion, setAppVersion] = useState("");
   const [worktreeBaseDir, setWorktreeBaseDir] = useState<string | undefined>();
+  const [commandProfiles, setCommandProfiles] = useState<CommandProfile[]>([]);
+  const [showAddProfile, setShowAddProfile] = useState(false);
+  const [editingProfileId, setEditingProfileId] = useState<string | null>(null);
+  const [newProfileName, setNewProfileName] = useState("");
+  const [newProfileExecutable, setNewProfileExecutable] = useState("claude");
+  const [newProfileExtraArgs, setNewProfileExtraArgs] = useState("");
+  const [newProfileEnvVars, setNewProfileEnvVars] = useState("");
 
   const [updateState, setUpdateState] = useState<UpdateState>("idle");
   const [updateInfo, setUpdateInfo] = useState<UpdateInfo>({});
@@ -48,6 +55,7 @@ export function SettingsPanel() {
     window.electronAPI.getSettings().then((settings) => {
       setActiveIcon(settings.appIcon ?? "icon-01");
       setWorktreeBaseDir(settings.worktreeBaseDir);
+      setCommandProfiles(settings.commandProfiles ?? []);
     });
     window.electronAPI.getIconDataUrls().then(setIconDataUrls);
     window.electronAPI.listFonts().then(setFonts);
@@ -135,6 +143,75 @@ export function SettingsPanel() {
     await window.electronAPI.saveSettings({ worktreeBaseDir: undefined });
   }, []);
 
+  const resetProfileForm = useCallback(() => {
+    setNewProfileName("");
+    setNewProfileExecutable("claude");
+    setNewProfileExtraArgs("");
+    setNewProfileEnvVars("");
+    setEditingProfileId(null);
+    setShowAddProfile(false);
+  }, []);
+
+  const handleEditProfile = useCallback((preset: CommandProfile) => {
+    setEditingProfileId(preset.id);
+    setNewProfileName(preset.name);
+    setNewProfileExecutable(preset.executable);
+    setNewProfileExtraArgs(preset.extraArgs ?? "");
+    setNewProfileEnvVars(preset.envVars ?? "");
+    setShowAddProfile(false);
+  }, []);
+
+  const handleSaveProfile = useCallback(async () => {
+    if (!window.electronAPI || !editingProfileId || !newProfileName.trim() || !newProfileExecutable.trim()) return;
+    const updated = commandProfiles.map((p) =>
+      p.id === editingProfileId
+        ? {
+            ...p,
+            name: newProfileName.trim(),
+            executable: newProfileExecutable.trim(),
+            extraArgs: newProfileExtraArgs.trim(),
+            envVars: newProfileEnvVars.trim(),
+          }
+        : p,
+    );
+    setCommandProfiles(updated);
+    await window.electronAPI.saveSettings({ commandProfiles: updated });
+    resetProfileForm();
+  }, [
+    commandProfiles,
+    editingProfileId,
+    newProfileName,
+    newProfileExecutable,
+    newProfileExtraArgs,
+    newProfileEnvVars,
+    resetProfileForm,
+  ]);
+
+  const handleAddProfile = useCallback(async () => {
+    if (!window.electronAPI || !newProfileName.trim() || !newProfileExecutable.trim()) return;
+    const preset: CommandProfile = {
+      id: crypto.randomUUID(),
+      name: newProfileName.trim(),
+      executable: newProfileExecutable.trim(),
+      extraArgs: newProfileExtraArgs.trim(),
+      envVars: newProfileEnvVars.trim(),
+    };
+    const updated = [...commandProfiles, preset];
+    setCommandProfiles(updated);
+    await window.electronAPI.saveSettings({ commandProfiles: updated });
+    resetProfileForm();
+  }, [commandProfiles, newProfileName, newProfileExecutable, newProfileExtraArgs, newProfileEnvVars, resetProfileForm]);
+
+  const handleDeleteProfile = useCallback(
+    async (id: string) => {
+      if (!window.electronAPI) return;
+      const updated = commandProfiles.filter((p) => p.id !== id);
+      setCommandProfiles(updated);
+      await window.electronAPI.saveSettings({ commandProfiles: updated });
+    },
+    [commandProfiles],
+  );
+
   const handleEscape = useCallback(
     (event: KeyboardEvent) => {
       if (event.key === "Escape") {
@@ -204,6 +281,89 @@ export function SettingsPanel() {
             >
               {worktreeBaseDir ? "Change Folder..." : "Choose Folder..."}
             </button>
+          </div>
+        </div>
+
+        {/* Profiles section */}
+        <div className="mb-6">
+          <h3 className="text-sm font-medium text-text-secondary mb-3">Profiles</h3>
+          <div className="rounded-lg bg-surface border border-border-subtle p-4">
+            <p className="text-[11px] text-text-muted mb-3">
+              Configure named CLI variants to select when starting a session. Values containing spaces are not supported
+              in Extra Args.
+            </p>
+            {commandProfiles.length > 0 && (
+              <div className="space-y-3 mb-3">
+                {commandProfiles.map((preset) =>
+                  editingProfileId === preset.id ? (
+                    <ProfileForm
+                      key={preset.id}
+                      name={newProfileName}
+                      executable={newProfileExecutable}
+                      extraArgs={newProfileExtraArgs}
+                      envVars={newProfileEnvVars}
+                      onName={setNewProfileName}
+                      onExecutable={setNewProfileExecutable}
+                      onExtraArgs={setNewProfileExtraArgs}
+                      onEnvVars={setNewProfileEnvVars}
+                      onSave={handleSaveProfile}
+                      onCancel={resetProfileForm}
+                      saveLabel="Update"
+                    />
+                  ) : (
+                    <div key={preset.id} className="flex items-center gap-2">
+                      <div className="flex-1 min-w-0">
+                        <span className="text-xs text-text-primary font-medium">{preset.name}</span>
+                        <span className="text-[11px] text-text-muted ml-2 font-mono">{preset.executable}</span>
+                        {preset.extraArgs && (
+                          <span className="text-[11px] text-text-muted ml-1 font-mono">{preset.extraArgs}</span>
+                        )}
+                        {preset.envVars && <span className="text-[11px] text-text-muted/60 ml-1 font-mono">[env]</span>}
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => handleEditProfile(preset)}
+                        className="text-[10px] text-text-muted hover:text-text-primary transition-colors cursor-pointer shrink-0"
+                      >
+                        Edit
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteProfile(preset.id)}
+                        className="text-[10px] text-text-muted hover:text-red-400 transition-colors cursor-pointer shrink-0"
+                      >
+                        Remove
+                      </button>
+                    </div>
+                  ),
+                )}
+              </div>
+            )}
+            {showAddProfile ? (
+              <ProfileForm
+                name={newProfileName}
+                executable={newProfileExecutable}
+                extraArgs={newProfileExtraArgs}
+                envVars={newProfileEnvVars}
+                onName={setNewProfileName}
+                onExecutable={setNewProfileExecutable}
+                onExtraArgs={setNewProfileExtraArgs}
+                onEnvVars={setNewProfileEnvVars}
+                onSave={handleAddProfile}
+                onCancel={resetProfileForm}
+                saveLabel="Save"
+              />
+            ) : (
+              !editingProfileId && (
+                <button
+                  type="button"
+                  onClick={() => setShowAddProfile(true)}
+                  className="text-xs font-medium px-3 py-1.5 rounded-md bg-accent/15 text-accent hover:bg-accent/25 transition-colors cursor-pointer"
+                >
+                  Add Profile...
+                </button>
+              )
+            )}
           </div>
         </div>
 
@@ -354,6 +514,82 @@ export function SettingsPanel() {
             )}
           </div>
         </div>
+      </div>
+    </div>
+  );
+}
+
+function ProfileForm({
+  name,
+  executable,
+  extraArgs,
+  envVars,
+  onName,
+  onExecutable,
+  onExtraArgs,
+  onEnvVars,
+  onSave,
+  onCancel,
+  saveLabel,
+}: {
+  name: string;
+  executable: string;
+  extraArgs: string;
+  envVars: string;
+  onName: (v: string) => void;
+  onExecutable: (v: string) => void;
+  onExtraArgs: (v: string) => void;
+  onEnvVars: (v: string) => void;
+  onSave: () => void;
+  onCancel: () => void;
+  saveLabel: string;
+}) {
+  return (
+    <div className="space-y-2">
+      <input
+        type="text"
+        value={name}
+        onChange={(e) => onName(e.target.value)}
+        placeholder="Name (e.g. Work Account)"
+        className="w-full px-2 py-1 bg-input border border-border rounded-md text-[12px] text-text-primary placeholder:text-text-muted/50 focus:outline-none focus:ring-1 focus:ring-accent/50"
+      />
+      <input
+        type="text"
+        value={executable}
+        onChange={(e) => onExecutable(e.target.value)}
+        placeholder="Executable (e.g. claude)"
+        className="w-full px-2 py-1 bg-input border border-border rounded-md text-[12px] text-text-primary placeholder:text-text-muted/50 focus:outline-none focus:ring-1 focus:ring-accent/50 font-mono"
+      />
+      <input
+        type="text"
+        value={extraArgs}
+        onChange={(e) => onExtraArgs(e.target.value)}
+        placeholder="Extra args (e.g. --model claude-opus-4-5)"
+        className="w-full px-2 py-1 bg-input border border-border rounded-md text-[12px] text-text-primary placeholder:text-text-muted/50 focus:outline-none focus:ring-1 focus:ring-accent/50 font-mono"
+      />
+      <textarea
+        value={envVars}
+        onChange={(e) => onEnvVars(e.target.value)}
+        placeholder={"Env vars, one per line:\nCLAUDE_CONFIG_DIR=/Users/you/.claude-home"}
+        rows={3}
+        className="w-full px-2 py-1 bg-input border border-border rounded-md text-[12px] text-text-primary placeholder:text-text-muted/50 focus:outline-none focus:ring-1 focus:ring-accent/50 font-mono resize-none"
+      />
+      <div className="flex gap-2">
+        <button
+          type="button"
+          onClick={onSave}
+          disabled={!name.trim() || !executable.trim()}
+          className="text-xs font-medium px-3 py-1.5 rounded-md bg-accent/15 text-accent hover:bg-accent/25 transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          {saveLabel}
+        </button>
+        <button
+          type="button"
+          onClick={onCancel}
+          className="text-xs text-text-muted hover:text-text-primary transition-colors cursor-pointer"
+        >
+          Cancel
+        </button>
       </div>
     </div>
   );
