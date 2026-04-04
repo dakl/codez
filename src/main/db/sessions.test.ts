@@ -43,6 +43,76 @@ describe("createSession", () => {
   });
 });
 
+describe("createSession with binaryName and extraArgs", () => {
+  it("stores and returns binaryName when provided", () => {
+    const session = createSession(db, {
+      repoPath: "/Users/dan/project",
+      worktreePath: "/Users/dan/project",
+      agentType: "claude",
+      name: "test",
+      binaryName: "claude-work",
+    });
+    expect(session.binaryName).toBe("claude-work");
+  });
+
+  it("stores and returns extraArgs when provided", () => {
+    const session = createSession(db, {
+      repoPath: "/Users/dan/project",
+      worktreePath: "/Users/dan/project",
+      agentType: "claude",
+      name: "test",
+      extraArgs: "--model claude-opus-4-5 --max-turns 10",
+    });
+    expect(session.extraArgs).toBe("--model claude-opus-4-5 --max-turns 10");
+  });
+
+  it("defaults binaryName and extraArgs to null when not provided", () => {
+    const session = createSession(db, {
+      repoPath: "/Users/dan/project",
+      worktreePath: "/Users/dan/project",
+      agentType: "claude",
+      name: "test",
+    });
+    expect(session.binaryName).toBeNull();
+    expect(session.extraArgs).toBeNull();
+  });
+});
+
+describe("createSession with profileName and envVars", () => {
+  it("stores and returns profileName when provided", () => {
+    const session = createSession(db, {
+      repoPath: "/Users/dan/project",
+      worktreePath: "/Users/dan/project",
+      agentType: "claude",
+      name: "test",
+      profileName: "home",
+    });
+    expect(session.profileName).toBe("home");
+  });
+
+  it("stores and returns envVars when provided", () => {
+    const session = createSession(db, {
+      repoPath: "/Users/dan/project",
+      worktreePath: "/Users/dan/project",
+      agentType: "claude",
+      name: "test",
+      envVars: "CLAUDE_CONFIG_DIR=/Users/dan/.claude-home\nANTHROPIC_MODEL=claude-opus-4-5",
+    });
+    expect(session.envVars).toBe("CLAUDE_CONFIG_DIR=/Users/dan/.claude-home\nANTHROPIC_MODEL=claude-opus-4-5");
+  });
+
+  it("defaults profileName and envVars to null when not provided", () => {
+    const session = createSession(db, {
+      repoPath: "/Users/dan/project",
+      worktreePath: "/Users/dan/project",
+      agentType: "claude",
+      name: "test",
+    });
+    expect(session.profileName).toBeNull();
+    expect(session.envVars).toBeNull();
+  });
+});
+
 describe("createSession with branchName", () => {
   it("stores and returns branchName", () => {
     const session = createSession(db, {
