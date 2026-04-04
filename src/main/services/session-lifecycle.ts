@@ -16,6 +16,10 @@ interface SessionLifecycleOptions {
   getAdditionalDirs?: () => string[];
 }
 
+function parseExtraArgs(extraArgsStr: string): string[] {
+  return extraArgsStr.trim().split(/\s+/).filter(Boolean);
+}
+
 interface StartSessionParams {
   repoPath: string;
   worktreePath: string;
@@ -60,12 +64,13 @@ export class SessionLifecycle extends EventEmitter {
       sessionId: session.id,
       worktreePath: params.worktreePath,
       additionalDirs: this.getAdditionalDirs(),
+      extraArgs: parseExtraArgs(session.extraArgs ?? ""),
     });
 
     const parser = new StreamParser();
     const args = adapter.buildStartArgs(params.prompt);
 
-    const proc = this.spawnFn("claude", args, { cwd: params.worktreePath });
+    const proc = this.spawnFn(session.binaryName ?? params.agentType, args, { cwd: params.worktreePath });
 
     const activeSession: ActiveSession = {
       adapter,
@@ -110,6 +115,7 @@ export class SessionLifecycle extends EventEmitter {
       sessionId: session.id,
       worktreePath: session.worktreePath,
       additionalDirs: this.getAdditionalDirs(),
+      extraArgs: parseExtraArgs(session.extraArgs ?? ""),
     });
     adapter.setAgentSessionId(session.agentSessionId ?? "");
 
@@ -132,7 +138,7 @@ export class SessionLifecycle extends EventEmitter {
     this.emit("statusChanged", sessionId, "running");
 
     const args = active.adapter.buildResumeArgs(prompt);
-    const proc = this.spawnFn("claude", args, { cwd: active.worktreePath });
+    const proc = this.spawnFn(session.binaryName ?? session.agentType, args, { cwd: active.worktreePath });
 
     active.process = proc;
     active.parser.reset();
@@ -160,11 +166,12 @@ export class SessionLifecycle extends EventEmitter {
       sessionId: session.id,
       worktreePath: session.worktreePath,
       additionalDirs: this.getAdditionalDirs(),
+      extraArgs: parseExtraArgs(session.extraArgs ?? ""),
     });
 
     const parser = new StreamParser();
     const args = adapter.buildStartArgs(prompt);
-    const proc = this.spawnFn("claude", args, { cwd: session.worktreePath });
+    const proc = this.spawnFn(session.binaryName ?? session.agentType, args, { cwd: session.worktreePath });
 
     const activeSession: ActiveSession = {
       adapter,

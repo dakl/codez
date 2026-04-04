@@ -4,6 +4,7 @@ interface ClaudeAdapterOptions {
   sessionId: string;
   worktreePath: string;
   additionalDirs?: string[];
+  extraArgs?: string[];
 }
 
 export class ClaudeAdapter {
@@ -11,11 +12,13 @@ export class ClaudeAdapter {
   private worktreePath: string;
   private agentSessionId: string | null = null;
   private additionalDirs: string[];
+  private extraArgs: string[];
 
   constructor(options: ClaudeAdapterOptions) {
     this.sessionId = options.sessionId;
     this.worktreePath = options.worktreePath;
     this.additionalDirs = options.additionalDirs ?? [];
+    this.extraArgs = options.extraArgs ?? [];
   }
 
   buildStartArgs(prompt: string): string[] {
@@ -23,6 +26,7 @@ export class ClaudeAdapter {
     for (const dir of this.additionalDirs) {
       args.push("--add-dir", dir);
     }
+    args.push(...this.extraArgs);
     return args;
   }
 
@@ -34,6 +38,7 @@ export class ClaudeAdapter {
     for (const dir of this.additionalDirs) {
       args.push("--add-dir", dir);
     }
+    args.push(...this.extraArgs);
     return args;
   }
 

@@ -1,6 +1,9 @@
 import { EventEmitter } from "node:events";
 import type { AgentType } from "../../shared/agent-types.js";
+import { getShellEnv, parseEnvOutput } from "../shell-env.js";
 import { SidebandDetector } from "./sideband-detector.js";
+
+type ShellEnvProvider = () => Record<string, string>;
 
 interface PtyLike {
   onData: (callback: (data: string) => void) => { dispose: () => void };
@@ -26,10 +29,12 @@ interface PtySession {
 export class PtyManager extends EventEmitter {
   private sessions = new Map<string, PtySession>();
   private spawnFn: SpawnFn;
+  private shellEnvProvider: ShellEnvProvider;
 
-  constructor(spawnFn: SpawnFn) {
+  constructor(spawnFn: SpawnFn, shellEnvProvider: ShellEnvProvider = getShellEnv) {
     super();
     this.spawnFn = spawnFn;
+    this.shellEnvProvider = shellEnvProvider;
   }
 
   create(
@@ -39,11 +44,14 @@ export class PtyManager extends EventEmitter {
     cols: number,
     rows: number,
     agentSessionId?: string | null,
+    binaryNameOverride?: string | null,
+    extraArgsStr?: string | null,
+    envVarsStr?: string | null,
   ): void {
     // Idempotent — skip if PTY already exists (React strict mode double-mounts in dev)
     if (this.sessions.has(sessionId)) return;
 
-    const binaryName = agentType;
+    const binaryName = binaryNameOverride ?? agentType;
 
     // Build args — for Claude, pin each Codez session to a specific
     // Claude session ID so multiple sessions in the same repo don't collide.
@@ -57,12 +65,19 @@ export class PtyManager extends EventEmitter {
         args.push("--session-id", sessionId);
       }
     }
+    if (extraArgsStr) {
+      const parsedExtra = extraArgsStr.trim().split(/\s+/).filter(Boolean);
+      args.push(...parsedExtra);
+    }
 
-    const cleanEnv: Record<string, string> = {};
-    for (const [key, value] of Object.entries(process.env)) {
-      if (value !== undefined) {
-        cleanEnv[key] = value;
-      }
+    // Start with the user's login+interactive shell env so PATH, API keys,
+    // and other vars from .zshrc/.zprofile are available to the agent.
+    // The shell was spawned from this process so it inherits process.env too,
+    // meaning shellEnv is already a superset — use it directly.
+    const cleanEnv: Record<string, string> = { ...this.shellEnvProvider() };
+    // Inject preset-level env vars last so they take priority over shell env.
+    if (envVarsStr) {
+      Object.assign(cleanEnv, parseEnvOutput(envVarsStr));
     }
     delete cleanEnv.CLAUDECODE;
     cleanEnv.TERM = "xterm-256color";
