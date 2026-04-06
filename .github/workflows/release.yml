@@ -35,6 +35,14 @@ jobs:
           npm version ${{ github.event.inputs.version }} --no-git-tag-version --allow-same-version
           VERSION=$(node -p "require('./package.json').version")
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          # A version with a pre-release identifier (e.g. 2.1.0-beta.1) should be
+          # published as a GitHub pre-release so electron-updater skips it for
+          # stable users (allowPrerelease defaults to false).
+          if [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "release_type=release" >> "$GITHUB_OUTPUT"
+          else
+            echo "release_type=prerelease" >> "$GITHUB_OUTPUT"
+          fi
 
       - name: Commit version bump
         run: |
@@ -66,7 +74,7 @@ jobs:
           APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: npx electron-builder --mac --arm64 --publish always
+        run: npx electron-builder --mac --arm64 --publish always --config.publish.releaseType=${{ steps.version.outputs.release_type }}
 
       - name: Add release notes
         env:
