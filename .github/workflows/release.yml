@@ -84,4 +84,5 @@ jobs:
           NOTES=$(gh api repos/${{ github.repository }}/releases/generate-notes \
             -f tag_name="$TAG" \
             --jq '.body')
-          gh release edit "$TAG" --notes "$NOTES"
+          PRERELEASE_FLAG=$(echo "${{ steps.version.outputs.version }}" | grep -qE '[-]' && echo '--prerelease' || echo '--no-prerelease')
+          gh release edit "$TAG" --notes "$NOTES" $PRERELEASE_FLAG

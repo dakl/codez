@@ -23,8 +23,10 @@ import {
   updateSessionStatus,
 } from "./db/sessions.js";
 import { applyDockIcon, getIconsDir } from "./dock.js";
+import { getHookSettingsPath, getHookSignalPath } from "./paths.js";
 import { PtyManager } from "./services/pty-manager.js";
 import { SessionLifecycle } from "./services/session-lifecycle.js";
+import { SessionStopWatcher } from "./services/session-stop-watcher.js";
 import { getShortcutOverrides, readSettings, saveShortcutOverrides, writeSettings } from "./settings.js";
 import { createWorktree, getDefaultBranch, listLocalBranches, removeWorktree } from "./worktree/worktree-manager.js";
 
@@ -49,9 +51,12 @@ export function registerIpcHandlers(options: RegisterHandlersOptions): void {
   });
 
   // --- PTY Manager ---
-  const ptyManager = new PtyManager((file, args, options) => {
-    return pty.spawn(file, args, options);
-  });
+  const ptyManager = new PtyManager(
+    (file, args, options) => pty.spawn(file, args, options),
+    undefined,
+    (sessionId, onIdle) =>
+      new SessionStopWatcher(getHookSettingsPath(sessionId), getHookSignalPath(sessionId), onIdle),
+  );
 
   ptyManager.on("data", (sessionId: string, data: string) => {
     const window = getMainWindow();

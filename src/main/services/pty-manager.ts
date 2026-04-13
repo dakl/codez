@@ -1,6 +1,7 @@
 import { EventEmitter } from "node:events";
 import type { AgentType } from "../../shared/agent-types.js";
 import { getShellEnv, parseEnvOutput } from "../shell-env.js";
+import type { StopWatcherFactory } from "./session-stop-watcher.js";
 import { SidebandDetector } from "./sideband-detector.js";
 
 type ShellEnvProvider = () => Record<string, string>;
@@ -22,19 +23,30 @@ type SpawnFn = (
 
 interface PtySession {
   pty: PtyLike;
-  detector: SidebandDetector;
+  // Unified interface — either a SessionStopWatcher (claude) or SidebandDetector (other agents)
+  statusTracker: { dispose(): void };
+  // Only set when using SidebandDetector — feeds PTY data into the timing heuristic
+  detector: SidebandDetector | null;
   disposables: Array<{ dispose: () => void }>;
+  // Tracks status locally so write() can avoid emitting redundant "running" events
+  currentStatus: "running" | "waiting_for_input";
 }
 
 export class PtyManager extends EventEmitter {
   private sessions = new Map<string, PtySession>();
   private spawnFn: SpawnFn;
   private shellEnvProvider: ShellEnvProvider;
+  private createStopWatcher: StopWatcherFactory | null;
 
-  constructor(spawnFn: SpawnFn, shellEnvProvider: ShellEnvProvider = getShellEnv) {
+  constructor(
+    spawnFn: SpawnFn,
+    shellEnvProvider: ShellEnvProvider = getShellEnv,
+    createStopWatcher: StopWatcherFactory | null = null,
+  ) {
     super();
     this.spawnFn = spawnFn;
     this.shellEnvProvider = shellEnvProvider;
+    this.createStopWatcher = createStopWatcher;
   }
 
   create(
@@ -53,10 +65,6 @@ export class PtyManager extends EventEmitter {
 
     const binaryName = binaryNameOverride ?? agentType;
 
-    // Build args — for Claude, pin each Codez session to a specific
-    // Claude session ID so multiple sessions in the same repo don't collide.
-    // First launch: --session-id <id> (assigns our UUID to Claude)
-    // Subsequent: --resume <id> (resumes that specific conversation)
     const args: string[] = [];
     if (agentType === "claude") {
       if (agentSessionId) {
@@ -70,12 +78,27 @@ export class PtyManager extends EventEmitter {
       args.push(...parsedExtra);
     }
 
-    // Start with the user's login+interactive shell env so PATH, API keys,
-    // and other vars from .zshrc/.zprofile are available to the agent.
-    // The shell was spawned from this process so it inherits process.env too,
-    // meaning shellEnv is already a superset — use it directly.
+    // Build status tracker: use the stop hook watcher for claude sessions when
+    // a factory is available, fall back to the sideband detector otherwise.
+    let statusTracker: { dispose(): void };
+    let detector: SidebandDetector | null = null;
+
+    if (agentType === "claude" && this.createStopWatcher) {
+      const watcher = this.createStopWatcher(sessionId, () => {
+        const session = this.sessions.get(sessionId);
+        if (session) session.currentStatus = "waiting_for_input";
+        this.emit("statusChanged", sessionId, "waiting_for_input");
+      });
+      args.push("--settings", watcher.settingsFilePath);
+      statusTracker = watcher;
+    } else {
+      detector = new SidebandDetector(agentType, (status) => {
+        this.emit("statusChanged", sessionId, status);
+      });
+      statusTracker = detector;
+    }
+
     const cleanEnv: Record<string, string> = { ...this.shellEnvProvider() };
-    // Inject preset-level env vars last so they take priority over shell env.
     if (envVarsStr) {
       Object.assign(cleanEnv, parseEnvOutput(envVarsStr));
     }
@@ -90,16 +113,12 @@ export class PtyManager extends EventEmitter {
       name: "xterm-256color",
     });
 
-    const detector = new SidebandDetector(agentType, (status) => {
-      this.emit("statusChanged", sessionId, status);
-    });
-
     const disposables: Array<{ dispose: () => void }> = [];
 
     disposables.push(
       pty.onData((data: string) => {
         this.emit("data", sessionId, data);
-        detector.feed(data);
+        detector?.feed(data);
       }),
     );
 
@@ -110,13 +129,26 @@ export class PtyManager extends EventEmitter {
       }),
     );
 
-    this.sessions.set(sessionId, { pty, detector, disposables });
+    this.sessions.set(sessionId, {
+      pty,
+      statusTracker,
+      detector,
+      disposables,
+      currentStatus: "running",
+    });
   }
 
   write(sessionId: string, data: string): void {
     const session = this.sessions.get(sessionId);
     if (!session) throw new Error(`No PTY session found for ${sessionId}`);
     session.pty.write(data);
+
+    // When using the stop hook (no detector), flip to "running" on Enter.
+    // This gives immediate feedback when the user submits a prompt.
+    if (session.detector === null && session.currentStatus === "waiting_for_input" && data.includes("\r")) {
+      session.currentStatus = "running";
+      this.emit("statusChanged", sessionId, "running");
+    }
   }
 
   resize(sessionId: string, cols: number, rows: number): void {
@@ -134,7 +166,7 @@ export class PtyManager extends EventEmitter {
 
   killAll(): void {
     for (const [, session] of this.sessions) {
-      session.detector.dispose();
+      session.statusTracker.dispose();
       session.pty.kill();
       for (const disposable of session.disposables) {
         disposable.dispose();
@@ -146,7 +178,7 @@ export class PtyManager extends EventEmitter {
   private cleanup(sessionId: string): void {
     const session = this.sessions.get(sessionId);
     if (!session) return;
-    session.detector.dispose();
+    session.statusTracker.dispose();
     for (const disposable of session.disposables) {
       disposable.dispose();
     }

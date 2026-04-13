@@ -15,3 +15,11 @@ export function getDbPath(): string {
 export function getSettingsPath(): string {
   return path.join(getDataDir(), "settings.json");
 }
+
+export function getHookSettingsPath(sessionId: string): string {
+  return path.join(getDataDir(), "hook-settings", `${sessionId}.json`);
+}
+
+export function getHookSignalPath(sessionId: string): string {
+  return path.join(getDataDir(), "hook-signals", sessionId);
+}
