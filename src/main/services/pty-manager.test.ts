@@ -221,7 +221,7 @@ describe("PtyManager", () => {
       expect(exits).toEqual([{ sessionId: "session-1", exitCode: 0 }]);
     });
 
-    it("emits statusChanged from sideband detector after idle timeout", () => {
+    it("emits statusChanged from sideband detector after idle timeout (fallback for non-claude agents)", () => {
       vi.useFakeTimers();
       try {
         const { manager, getLastPty } = createManager();
@@ -230,11 +230,11 @@ describe("PtyManager", () => {
           statuses.push({ sessionId, status });
         });
 
-        manager.create("session-1", "claude", "/repo", 80, 24);
+        manager.create("session-1", "gemini", "/repo", 80, 24);
         getLastPty()._emitData("some output");
         expect(statuses).toEqual([]);
 
-        vi.advanceTimersByTime(500);
+        vi.advanceTimersByTime(10_000);
         expect(statuses).toEqual([{ sessionId: "session-1", status: "waiting_for_input" }]);
       } finally {
         vi.useRealTimers();
@@ -248,6 +248,106 @@ describe("PtyManager", () => {
 
       // Session should be cleaned up after exit
       expect(() => manager.write("session-1", "hello")).toThrow();
+    });
+  });
+
+  describe("stop hook watcher (claude sessions)", () => {
+    function createMockStopWatcher() {
+      let idleCallback: (() => void) | null = null;
+      const watcherDispose = vi.fn();
+      const factory = vi.fn((sessionId: string, onIdle: () => void) => {
+        idleCallback = onIdle;
+        return {
+          settingsFilePath: `/mock-hook-settings/${sessionId}.json`,
+          dispose: watcherDispose,
+        };
+      });
+      return {
+        factory,
+        watcherDispose,
+        triggerIdle: () => idleCallback?.(),
+      };
+    }
+
+    function createManagerWithWatcher() {
+      const { factory, watcherDispose, triggerIdle } = createMockStopWatcher();
+      let lastMockPty: MockPty | null = null;
+      const spawnFn = vi.fn((_file: string, _args: string[], _options: unknown) => {
+        lastMockPty = createMockPty();
+        return lastMockPty;
+      });
+      const manager = new PtyManager(spawnFn, () => ({}), factory);
+      return { manager, spawnFn, factory, watcherDispose, triggerIdle, getLastPty: () => lastMockPty as MockPty };
+    }
+
+    it("appends --settings <path> to args for claude sessions when factory is provided", () => {
+      const { manager, spawnFn } = createManagerWithWatcher();
+      manager.create("session-1", "claude", "/repo", 80, 24);
+
+      const calledArgs = spawnFn.mock.calls[0][1] as string[];
+      const settingsIndex = calledArgs.indexOf("--settings");
+      expect(settingsIndex).not.toBe(-1);
+      expect(calledArgs[settingsIndex + 1]).toBe("/mock-hook-settings/session-1.json");
+    });
+
+    it("does not append --settings for non-claude agents even when factory is provided", () => {
+      const { manager, spawnFn } = createManagerWithWatcher();
+      manager.create("session-1", "gemini", "/repo", 80, 24);
+
+      const calledArgs = spawnFn.mock.calls[0][1] as string[];
+      expect(calledArgs).not.toContain("--settings");
+    });
+
+    it("emits waiting_for_input when the stop hook fires", () => {
+      const { manager, triggerIdle } = createManagerWithWatcher();
+      const statuses: Array<{ sessionId: string; status: string }> = [];
+      manager.on("statusChanged", (sessionId: string, status: string) => {
+        statuses.push({ sessionId, status });
+      });
+
+      manager.create("session-1", "claude", "/repo", 80, 24);
+      triggerIdle();
+
+      expect(statuses).toEqual([{ sessionId: "session-1", status: "waiting_for_input" }]);
+    });
+
+    it("emits running when the user presses Enter while waiting", () => {
+      const { manager, triggerIdle } = createManagerWithWatcher();
+      const statuses: Array<{ sessionId: string; status: string }> = [];
+      manager.on("statusChanged", (sessionId: string, status: string) => {
+        statuses.push({ sessionId, status });
+      });
+
+      manager.create("session-1", "claude", "/repo", 80, 24);
+      triggerIdle(); // now waiting_for_input
+      manager.write("session-1", "\r"); // user presses Enter
+
+      expect(statuses).toEqual([
+        { sessionId: "session-1", status: "waiting_for_input" },
+        { sessionId: "session-1", status: "running" },
+      ]);
+    });
+
+    it("does not emit running on Enter when already running", () => {
+      const { manager } = createManagerWithWatcher();
+      const statuses: Array<{ sessionId: string; status: string }> = [];
+      manager.on("statusChanged", (sessionId: string, status: string) => {
+        statuses.push({ sessionId, status });
+      });
+
+      manager.create("session-1", "claude", "/repo", 80, 24);
+      // Still in initial "running" state — pressing Enter should not re-emit running
+      manager.write("session-1", "\r");
+
+      expect(statuses).toEqual([]);
+    });
+
+    it("disposes the watcher on session cleanup", () => {
+      const { manager, getLastPty, watcherDispose } = createManagerWithWatcher();
+      manager.create("session-1", "claude", "/repo", 80, 24);
+      getLastPty()._emitExit(0);
+
+      expect(watcherDispose).toHaveBeenCalled();
     });
   });
 });

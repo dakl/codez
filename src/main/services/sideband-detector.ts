@@ -3,7 +3,7 @@ import type { AgentType } from "../../shared/agent-types.js";
 type SidebandStatus = "running" | "waiting_for_input";
 type StatusCallback = (status: SidebandStatus) => void;
 
-const DEFAULT_IDLE_TIMEOUT_MS = 500;
+const DEFAULT_IDLE_TIMEOUT_MS = 10_000;
 
 /**
  * Detects whether a PTY-based agent is running or waiting for input.
