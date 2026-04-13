@@ -32,7 +32,7 @@ describe("SessionStopWatcher", () => {
     );
     expect(settingsCall).toBeDefined();
 
-    const written = JSON.parse(settingsCall![1]);
+    const written = JSON.parse(settingsCall?.[1] as string);
     expect(written.hooks.Stop[0].hooks[0].command).toBe("touch '/data/hook-signals/s1'");
     expect(written.hooks.Stop[0].hooks[0].async).toBe(true);
   });
@@ -45,7 +45,7 @@ describe("SessionStopWatcher", () => {
       (call) => call[0] === "/data/hook-signals/s1",
     );
     expect(signalCall).toBeDefined();
-    expect(signalCall![1]).toBe("");
+    expect(signalCall?.[1]).toBe("");
   });
 
   it("calls onIdle when the signal file is touched", () => {
@@ -75,12 +75,7 @@ describe("SessionStopWatcher", () => {
 
   it("dispose closes the watcher and removes both files", () => {
     const { fsOps, watcher } = createMockFsOps();
-    const stopWatcher = new SessionStopWatcher(
-      "/data/hook-settings/s1.json",
-      "/data/hook-signals/s1",
-      vi.fn(),
-      fsOps,
-    );
+    const stopWatcher = new SessionStopWatcher("/data/hook-settings/s1.json", "/data/hook-signals/s1", vi.fn(), fsOps);
 
     stopWatcher.dispose();
 
@@ -91,12 +86,7 @@ describe("SessionStopWatcher", () => {
 
   it("dispose is safe to call twice", () => {
     const { fsOps } = createMockFsOps();
-    const stopWatcher = new SessionStopWatcher(
-      "/data/hook-settings/s1.json",
-      "/data/hook-signals/s1",
-      vi.fn(),
-      fsOps,
-    );
+    const stopWatcher = new SessionStopWatcher("/data/hook-settings/s1.json", "/data/hook-signals/s1", vi.fn(), fsOps);
 
     stopWatcher.dispose();
     expect(() => stopWatcher.dispose()).not.toThrow();

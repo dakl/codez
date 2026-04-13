@@ -11,7 +11,7 @@ interface FsOps {
 // Wraps a path in single quotes, escaping any embedded single quotes.
 // Handles spaces and most special shell characters.
 function shellQuote(s: string): string {
-  return "'" + s.replace(/'/g, "'\\''") + "'";
+  return `'${s.replace(/'/g, "'\\''")}'`;
 }
 
 export type StopWatcherFactory = (

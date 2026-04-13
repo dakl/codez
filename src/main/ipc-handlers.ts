@@ -54,8 +54,7 @@ export function registerIpcHandlers(options: RegisterHandlersOptions): void {
   const ptyManager = new PtyManager(
     (file, args, options) => pty.spawn(file, args, options),
     undefined,
-    (sessionId, onIdle) =>
-      new SessionStopWatcher(getHookSettingsPath(sessionId), getHookSignalPath(sessionId), onIdle),
+    (sessionId, onIdle) => new SessionStopWatcher(getHookSettingsPath(sessionId), getHookSignalPath(sessionId), onIdle),
   );
 
   ptyManager.on("data", (sessionId: string, data: string) => {
