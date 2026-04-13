@@ -65,9 +65,11 @@ export function NewSessionDialog({ repoName, repoPath, onConfirm, onCancel }: Ne
     (event: React.KeyboardEvent) => {
       if (event.key === "Enter") {
         event.preventDefault();
+        event.stopPropagation();
         handleSubmit();
       } else if (event.key === "Escape") {
         event.preventDefault();
+        event.stopPropagation();
         onCancel();
       }
     },
