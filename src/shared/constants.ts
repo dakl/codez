@@ -46,6 +46,7 @@ export const IPC = {
 
   // App
   APP_GET_INFO: "app:getInfo",
+  APP_OPEN_EXTERNAL: "app:openExternal",
 
   // PTY
   PTY_CREATE: "pty:create",

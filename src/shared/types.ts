@@ -100,6 +100,7 @@ export interface ElectronAPI {
 
   // App
   getAppInfo: () => Promise<{ name: string; version: string }>;
+  openExternal: (url: string) => Promise<void>;
 
   // PTY
   ptyCreate: (
