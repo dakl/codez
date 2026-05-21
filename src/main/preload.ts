@@ -40,6 +40,7 @@ const CH = {
   SETTINGS_GET_ICON_DATA_URLS: "settings:getIconDataUrls",
   SETTINGS_SET_APP_ICON: "settings:setAppIcon",
   APP_GET_INFO: "app:getInfo",
+  APP_OPEN_EXTERNAL: "app:openExternal",
   UPDATER_CHECK: "updater:check",
   UPDATER_DOWNLOAD: "updater:download",
   UPDATER_QUIT_AND_INSTALL: "updater:quitAndInstall",
@@ -120,6 +121,7 @@ const api = {
 
   // App
   getAppInfo: () => ipcRenderer.invoke(CH.APP_GET_INFO),
+  openExternal: (url: string) => ipcRenderer.invoke(CH.APP_OPEN_EXTERNAL, url),
 
   // Updater
   checkForUpdate: () => ipcRenderer.invoke(CH.UPDATER_CHECK),

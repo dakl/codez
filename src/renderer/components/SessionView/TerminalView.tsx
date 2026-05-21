@@ -1,5 +1,6 @@
 import type { AgentType } from "@shared/agent-types";
 import { FitAddon } from "@xterm/addon-fit";
+import { WebLinksAddon } from "@xterm/addon-web-links";
 import { type ITheme, Terminal } from "@xterm/xterm";
 import "@xterm/xterm/css/xterm.css";
 import { useEffect, useRef } from "react";
@@ -95,6 +96,7 @@ export function TerminalView({ sessionId, agentType, worktreePath, isActive }: T
     let resizeObserver: ResizeObserver | null = null;
     let unsubData: (() => void) | null = null;
     let unsubExit: (() => void) | null = null;
+    let linkTooltip: HTMLDivElement | null = null;
 
     const initRafId = requestAnimationFrame(() => {
       if (disposed) return;
@@ -113,6 +115,40 @@ export function TerminalView({ sessionId, agentType, worktreePath, isActive }: T
 
       fitAddon = new FitAddon();
       terminal.loadAddon(fitAddon);
+
+      // Cmd+click (macOS) on URLs opens them in the default browser.
+      // The addon underlines links on hover; the handler routes to Electron's
+      // shell.openExternal via IPC so the URL doesn't open in a new BrowserWindow.
+      // Tooltip is rendered imperatively because the link is inside xterm's canvas,
+      // not a React element — the addon's hover/leave callbacks drive show/hide.
+      linkTooltip = document.createElement("div");
+      linkTooltip.className =
+        "fixed pointer-events-none z-[9999] whitespace-nowrap rounded-md px-2 py-1 text-[11px] font-medium leading-none bg-elevated text-text-primary shadow-lg border border-border-subtle";
+      linkTooltip.style.display = "none";
+      linkTooltip.textContent = "Cmd + click to open link";
+      document.body.appendChild(linkTooltip);
+
+      terminal.loadAddon(
+        new WebLinksAddon(
+          (event, uri) => {
+            if (event.metaKey) {
+              window.electronAPI.openExternal(uri).catch(() => {});
+            }
+          },
+          {
+            hover: (event) => {
+              if (!linkTooltip) return;
+              linkTooltip.style.display = "block";
+              linkTooltip.style.left = `${event.clientX + 12}px`;
+              linkTooltip.style.top = `${event.clientY + 16}px`;
+            },
+            leave: () => {
+              if (linkTooltip) linkTooltip.style.display = "none";
+            },
+          },
+        ),
+      );
+
       terminal.open(container);
 
       terminalRef.current = terminal;
@@ -194,6 +230,8 @@ export function TerminalView({ sessionId, agentType, worktreePath, isActive }: T
       unsubExit?.();
       window.electronAPI.ptyKill(sessionId);
       terminal?.dispose();
+      linkTooltip?.remove();
+      linkTooltip = null;
       terminalRef.current = null;
       fitAddonRef.current = null;
       initializedRef.current = false;

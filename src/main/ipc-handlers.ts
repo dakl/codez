@@ -1,7 +1,7 @@
 import { execFileSync, spawn } from "node:child_process";
 import fs from "node:fs";
 import type Database from "better-sqlite3";
-import { app, type BrowserWindow, dialog, ipcMain } from "electron";
+import { app, type BrowserWindow, dialog, ipcMain, shell } from "electron";
 import { getFonts2 } from "font-list";
 import * as pty from "node-pty";
 import type { AgentType } from "../shared/agent-types.js";
@@ -396,5 +396,19 @@ export function registerIpcHandlers(options: RegisterHandlersOptions): void {
   ipcMain.handle(IPC.APP_GET_INFO, () => {
     const { app } = require("electron");
     return { name: app.getName(), version: app.getVersion() };
+  });
+
+  ipcMain.handle(IPC.APP_OPEN_EXTERNAL, (_event, url: string) => {
+    // Only allow http(s) and mailto schemes — block file:// and other schemes
+    // that could escape the sandbox by launching arbitrary handlers.
+    try {
+      const parsed = new URL(url);
+      if (parsed.protocol !== "http:" && parsed.protocol !== "https:" && parsed.protocol !== "mailto:") {
+        return;
+      }
+    } catch {
+      return;
+    }
+    shell.openExternal(url);
   });
 }
